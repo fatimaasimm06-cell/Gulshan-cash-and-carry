@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import re
+import time
 import urllib.parse
 
 import pandas as pd
@@ -67,7 +68,7 @@ def header(title: str, subtitle: str = "") -> None:
 
 
 def cfg() -> dict:
-    return db.get_settings(db.catalog_version())
+    return db.get_settings(version())
 
 
 # ---------------------------------------------------------------- real-time sync
@@ -80,12 +81,17 @@ def live_catalog() -> int:
     """
     v = db.catalog_version()
     st.session_state["_catalog_v"] = v
+    st.session_state["_catalog_checked"] = time.monotonic()
     _watch_catalog()
     return v
 
 
 @st.fragment(run_every=POLL_SECONDS)
 def _watch_catalog() -> None:
+    # Skip when the whole page just checked (every click runs the page): saves a database round trip.
+    if time.monotonic() - st.session_state.get("_catalog_checked", 0) < POLL_SECONDS - 1:
+        return
+    st.session_state["_catalog_checked"] = time.monotonic()
     if db.catalog_version() != st.session_state.get("_catalog_v"):
         st.rerun(scope="app")
 
