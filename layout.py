@@ -338,6 +338,17 @@ header[data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSideb
 .st-key-gcc-footer [data-testid="stPageLink-NavLink"]:hover p {{ color:#fff !important; text-decoration:underline; }}
 [class*="st-key-pcrow_"] [data-testid="stNumberInput"] {{ min-width:0; }}
 
+/* ---------- home page shortcut tiles */
+[class*="st-key-tile_"] {{ background:{SURFACE}; border:1px solid {LINE} !important; border-radius:18px !important;
+  padding:20px !important; height:100%; transition:box-shadow .15s, border-color .15s; }}
+[class*="st-key-tile_"]:hover {{ border-color:#B9C0DA !important; box-shadow:0 8px 24px rgba(15,23,42,.08); }}
+.gcc-tile .gcc-ic {{ background:{SOFT}; border-radius:12px; padding:10px; width:46px; height:46px; }}
+.gcc-tile-h {{ font-size:1.15rem; font-weight:700; color:{INK}; margin-top:12px; }}
+.gcc-tile-s {{ color:{MUTED}; font-size:.92rem; margin-top:2px; min-height:2.6em; }}
+[class*="st-key-tile_"] [data-testid="stPageLink-NavLink"] {{ background:{NAVY}; border-radius:10px; padding:8px 14px; }}
+[class*="st-key-tile_"] [data-testid="stPageLink-NavLink"]:hover {{ background:{NAVY_700}; }}
+[class*="st-key-tile_"] [data-testid="stPageLink-NavLink"] p {{ color:#fff !important; font-weight:600 !important; }}
+
 /* ---------- tablets */
 @media (max-width: 900px) {{
   .gcc-hero-grid {{ grid-template-columns:1fr; }}
@@ -423,6 +434,14 @@ header[data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSideb
   [class*="st-key-rate_"] {{ flex-wrap:nowrap !important; padding:2px 8px 2px 0 !important; }}
   [class*="st-key-rate_"] [data-testid="stBaseButton-secondary"] {{ padding:4px 10px !important; min-height:34px; font-size:.85rem; }}
 
+  /* home shortcut tiles: 2 per row (the product-grid rule above also covers them) */
+  [class*="st-key-tile_"] {{ padding:14px !important; border-radius:14px !important; }}
+  .gcc-tile .gcc-ic {{ width:38px; height:38px; padding:8px; }}
+  .gcc-tile-h {{ font-size:.98rem; margin-top:8px; }}
+  .gcc-tile-s {{ font-size:.8rem; min-height:3.2em; }}
+  [class*="st-key-tile_"] [data-testid="stPageLink-NavLink"] {{ padding:6px 10px; }}
+  [class*="st-key-tile_"] [data-testid="stPageLink-NavLink"] p {{ font-size:.85rem !important; }}
+
   /* cards on store / wholesale pages */
   [class*="st-key-info_"] {{ padding:16px !important; border-radius:16px !important; }}
   .gcc-card-h {{ font-size:1.12rem; }}
@@ -493,6 +512,7 @@ def navbar(s: dict, products, sectors) -> None:
                 with st.container(key="gcc-cart", width="content"):
                     st.page_link("checkout.py", label=f"Basket ({count}) · {ui.rs(subtotal)}", icon="🛒")
         with st.container(key="gcc-links", horizontal=True, vertical_alignment="center", gap="small"):
+            st.page_link("home.py", label="Home")
             st.page_link("shop.py", label="Groceries")
             st.page_link("wholesale.py", label="Wholesale Deals")
             st.page_link("rates.py", label="Delivery Rates")
@@ -556,7 +576,6 @@ def hero(s: dict, sectors) -> None:
     <p class="lead">{e(s['store_name'])} G-10 Markaz brings fresh flour, premium basmati rice, cooking oils, ghee,
       tea, spices and household essentials straight to your home, with express delivery and bulk wholesale savings.</p>
     <div class="gcc-cta">
-      <a class="gcc-btn light" href="#catalog">{icon('search', 18, NAVY)}Browse groceries</a>
       <a class="gcc-btn wa" href="https://wa.me/{wa}?text={hello}" target="_blank" rel="noopener">{icon('chat', 18, '#FFFFFF')}Order on WhatsApp</a>
     </div>
     <div class="gcc-facts">
@@ -571,6 +590,28 @@ def hero(s: dict, sectors) -> None:
     <div class="row"><span>{icon('box', 18, ON_NAVY)}Fresh daily stock</span><span>{icon('cash', 18, ON_NAVY)}Wholesale prices</span></div>
   </div>
 </div></section>""")
+
+
+# ---------------------------------------------------------------- home page shortcuts
+def home_shortcuts(s: dict, products, sectors) -> None:
+    n_products = len(products)
+    n_deals = int(products.is_deal.sum()) if not products.empty else 0
+    zs = zones(sectors)
+    cheapest = min((z["fee"] for z in zs), default=0)
+    tiles = [
+        ("groceries", "shop.py", "search", "Shop groceries", f"{n_products} products at wholesale rates", "Shop now"),
+        ("deals", "wholesale.py", "box", "Wholesale deals", f"{n_deals} discounted items this week", "See deals"),
+        ("rates", "rates.py", "truck", "Delivery rates", f"From {ui.fee_text(cheapest)} · {len(sectors)} areas", "Check area"),
+        ("track", "track.py", "clock", "Track your order", "Live status with your order ID", "Track"),
+    ]
+    section_title("Shop by section", "What would you like to do today?")
+    with st.container(key="gcc-grid-tiles"):
+        cols = st.columns(4, gap="medium")
+        for col, (key, page, ic, title, sub, cta) in zip(cols, tiles):
+            with col, st.container(key=f"tile_{key}"):
+                st.html(f"""<div class="gcc-tile">{icon(ic, 26, NAVY)}
+<div class="gcc-tile-h">{e(title)}</div><div class="gcc-tile-s">{e(sub)}</div></div>""")
+                st.page_link(page, label=f"{cta} →")
 
 
 # ---------------------------------------------------------------- store info page

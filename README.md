@@ -57,9 +57,10 @@ All files sit together in one folder, with no sub-folders.
 
 | File | What it is |
 | --- | --- |
-| `app.py` | Starts the **customer website** and its menu: Groceries, Wholesale Deals, Delivery Rates, Track Order, Store Info, Basket |
+| `app.py` | Starts the **customer website** and its menu: Home, Groceries, Wholesale Deals, Delivery Rates, Track Order, Store Info, Basket |
 | `admin_app.py` | Starts the separate **admin portal** |
-| `shop.py` | **Groceries** page: banner and the full catalog with search, categories and sorting |
+| `home.py` | **Home** page: the banner and shortcuts to each section |
+| `shop.py` | **Groceries** page: the full catalog with search, categories and sorting |
 | `wholesale.py` | **Wholesale Deals** page: this week's deals and the bulk/office order request |
 | `rates.py` | **Delivery Rates** page: fee, time and free-delivery limit per area, with "Deliver here" |
 | `track.py` | **Track Order** page |
