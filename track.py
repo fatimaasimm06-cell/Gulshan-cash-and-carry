@@ -50,11 +50,11 @@ def show_status(order_id: str, phone: str) -> None:
     if status == "cancelled":
         st.error("This order was cancelled. Please call the store if this is unexpected.")
     else:
-        cols = st.columns(len(STEPS))
         reached = STEPS.index(status)
-        for i, (col, step) in enumerate(zip(cols, STEPS)):
+        steps_row = st.container(key="track_steps", horizontal=True, horizontal_alignment="distribute")
+        for i, step in enumerate(STEPS):
             done = i <= reached
-            col.markdown(f"{ICONS[step] if done else '⚪'}  \n**{db.STATUS_LABEL[step]}**" if done
+            steps_row.markdown(f"{ICONS[step] if done else '⚪'}  \n**{db.STATUS_LABEL[step]}**" if done
                          else f"⚪  \n<span style='color:#999'>{db.STATUS_LABEL[step]}</span>",
                          unsafe_allow_html=True)
         st.progress((reached + 1) / len(STEPS))

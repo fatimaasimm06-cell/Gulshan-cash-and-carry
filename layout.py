@@ -327,23 +327,110 @@ header[data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSideb
   display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:.9rem; }}
 .st-key-gcc-footer a {{ color:#fff !important; }}
 
-/* ---------- mobile */
+/* ---------- menu links: page links styled like the design */
+.st-key-gcc-links [data-testid="stPageLink-NavLink"] {{ padding:6px 12px !important; border-radius:8px; }}
+.st-key-gcc-links [data-testid="stPageLink-NavLink"][aria-current="page"] {{ background:{SOFT} !important; }}
+.st-key-gcc-links [data-testid="stPageLink-NavLink"][aria-current="page"] p {{ color:{NAVY} !important; font-weight:700 !important; }}
+.st-key-gcc-area [data-testid="stPageLink-NavLink"] {{ border:1px solid #B9C0D4; border-radius:10px; padding:6px 12px; }}
+.st-key-gcc-area [data-testid="stPageLink-NavLink"] p {{ color:{INK} !important; font-weight:500 !important; }}
+.st-key-gcc-footer [data-testid="stPageLink-NavLink"] {{ padding:2px 0 !important; background:transparent !important; }}
+.st-key-gcc-footer [data-testid="stPageLink-NavLink"] p {{ color:{ON_NAVY} !important; font-weight:400 !important; font-size:1rem; }}
+.st-key-gcc-footer [data-testid="stPageLink-NavLink"]:hover p {{ color:#fff !important; text-decoration:underline; }}
+[class*="st-key-pcrow_"] [data-testid="stNumberInput"] {{ min-width:0; }}
+
+/* ---------- tablets */
 @media (max-width: 900px) {{
   .gcc-hero-grid {{ grid-template-columns:1fr; }}
   .gcc-hero-card {{ max-width:460px; }}
 }}
+
+/* ---------- phones */
 @media (max-width: 640px) {{
-  .gcc-topbar {{ font-size:.82rem; }}
+  /* no zoom-in on iPhone when tapping a field (needs 16px text) */
+  .stApp input, .stApp textarea, .stApp [data-baseweb="select"] * {{ font-size:16px !important; }}
+
+  /* top bar + header */
+  .gcc-topbar {{ font-size:.8rem; }}
+  .gcc-topbar-in {{ padding-top:6px; padding-bottom:6px; gap:6px; }}
   .gcc-tb-msg .extra {{ display:none; }}
-  .gcc-title {{ font-size:1.15rem; }}
-  .gcc-tag {{ font-size:.85rem; }}
-  .gcc-brand img {{ width:44px; height:44px; }}
-  .st-key-gcc-nav {{ position:static; }}
-  .st-key-gcc-links {{ flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; }}
-  .st-key-gcc-links > div {{ flex:none !important; }}
-  .gcc-hero {{ padding-top:32px; padding-bottom:40px; }}
-  .gcc-ph {{ max-height:150px; font-size:2.6rem; }}
-  div[data-testid="stImage"] img {{ max-height:170px; }}
+  .gcc-pill {{ padding:3px 10px; font-size:.78rem; }}
+  .st-key-gcc-nav {{ position:static; padding-top:8px !important; }}
+  .gcc-brand {{ gap:10px; }}
+  .gcc-brand img {{ width:42px; height:42px; border-radius:11px; }}
+  .gcc-title {{ font-size:1.12rem; }}
+  .gcc-badge {{ font-size:.6rem; padding:2px 5px; }}
+  .gcc-tag {{ font-size:.82rem; }}
+  .st-key-gcc-nav-top {{ gap:6px !important; }}
+  /* menu: all five links visible, wrapping onto two short rows */
+  .st-key-gcc-links {{ flex-wrap:wrap !important; gap:2px 2px !important; margin-left:-6px; margin-top:6px; }}
+  .st-key-gcc-links [data-testid="stPageLink-NavLink"] {{ padding:5px 9px !important; }}
+  .st-key-gcc-links [data-testid="stPageLink-NavLink"] p {{ font-size:.92rem !important; }}
+
+  /* basket: a bar fixed to the bottom of the screen, always one tap away */
+  .st-key-gcc-cart {{ position:fixed !important; left:12px; right:12px; bottom:12px; z-index:1000;
+    width:calc(100% - 24px) !important; max-width:none !important; }}
+  .st-key-gcc-cart [data-testid="stElementContainer"], .st-key-gcc-cart [data-testid="stPageLink"],
+  .st-key-gcc-cart [data-testid="stPageLink"] > div, .st-key-gcc-cart [data-testid="stPageLink-NavLink"] {{
+    width:100% !important; flex:1 1 100% !important; max-width:none !important; }}
+  .st-key-gcc-cart [data-testid="stPageLink-NavLink"] {{ justify-content:center; padding:13px 16px !important;
+    border-radius:14px; box-shadow:0 8px 24px rgba(0,8,77,.35); }}
+  .st-key-gcc-cart [data-testid="stPageLink-NavLink"] p {{ font-size:1.02rem !important; }}
+  .st-key-gcc-footer {{ padding-bottom:96px !important; }}
+  .st-key-gcc-page {{ padding-top:20px !important; padding-bottom:36px !important; }}
+
+  /* hero: shorter, no big logo card, facts in a 2 x 2 grid, buttons full width */
+  .gcc-hero {{ padding-top:24px; padding-bottom:28px; }}
+  .gcc-hero-card {{ display:none; }}
+  .gcc-chips {{ font-size:.85rem; gap:6px; }}
+  .gcc-chip {{ padding:2px 10px; }}
+  .gcc-hero h1 {{ font-size:2.05rem !important; margin:14px 0 10px !important; }}
+  .gcc-hero p.lead {{ font-size:1rem; line-height:1.5; }}
+  .gcc-cta {{ margin-top:18px; gap:8px; }}
+  .gcc-cta .gcc-btn {{ flex:1 1 0; justify-content:center; padding:11px 10px; font-size:.9rem; white-space:nowrap; }}
+  .gcc-facts {{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-top:20px; padding-top:16px; }}
+  .gcc-fact b {{ font-size:1.02rem; }} .gcc-fact span {{ font-size:.8rem; }}
+
+  /* section titles */
+  .gcc-h2 {{ font-size:1.45rem; }}
+  .gcc-sub {{ font-size:.95rem; }}
+
+  /* product grid: 2 cards per row instead of 1 */
+  [class*="st-key-gcc-grid"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]) {{
+    flex-wrap:wrap !important; gap:10px !important; margin-bottom:10px; }}
+  [class*="st-key-gcc-grid"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]) > [data-testid="stColumn"] {{
+    width:calc(50% - 5px) !important; flex:0 0 calc(50% - 5px) !important; min-width:0 !important; }}
+  [class*="st-key-pc_"] {{ padding:8px !important; border-radius:14px !important; }}
+  .gcc-ph {{ max-height:96px; font-size:2.2rem; border-radius:10px; }}
+  [class*="st-key-pc_"] div[data-testid="stImage"] img {{ max-height:110px; }}
+  .gcc-name {{ font-size:.9rem; min-height:2.5em; line-height:1.22; }}
+  .gcc-urdu {{ font-size:.82rem; }}
+  .gcc-unit {{ font-size:.75rem; }}
+  .gcc-price {{ font-size:1rem; }}
+  .gcc-mrp {{ font-size:.75rem; margin-left:4px; }}
+  .gcc-save {{ font-size:.7rem; padding:1px 6px; }}
+  /* on a phone the card is too narrow for a quantity box: "Add" adds one, change it in the basket */
+  [class*="st-key-pcrow_"] [data-testid="stNumberInput"] {{ display:none !important; }}
+  [class*="st-key-pc_"] [data-testid="stPopover"] button, [class*="st-key-pc_"] [data-testid="stPopoverButton"] {{
+    min-height:32px !important; padding:2px 8px !important; }}
+  [class*="st-key-pc_"] [data-testid="stCaptionContainer"] p {{ font-size:.75rem !important; }}
+
+  /* delivery rates: compact two-line rows */
+  .gcc-rates-row {{ grid-template-columns:auto 1fr; column-gap:10px; row-gap:2px; padding:8px 10px; }}
+  .gcc-rates-row .fr {{ grid-column:1 / -1; }}
+  .gcc-rates-row .nm {{ grid-column:1 / -1; font-size:.95rem; }}
+  .gcc-rates-row .zn, .gcc-rates-row .rt small {{ display:none; }}
+  .gcc-rates-row .tm, .gcc-rates-row .rt b, .gcc-rates-row .fr {{ font-size:.8rem; white-space:nowrap; }}
+  [class*="st-key-rate_"] {{ flex-wrap:nowrap !important; padding:2px 8px 2px 0 !important; }}
+  [class*="st-key-rate_"] [data-testid="stBaseButton-secondary"] {{ padding:4px 10px !important; min-height:34px; font-size:.85rem; }}
+
+  /* cards on store / wholesale pages */
+  [class*="st-key-info_"] {{ padding:16px !important; border-radius:16px !important; }}
+  .gcc-card-h {{ font-size:1.12rem; }}
+
+  /* basket lines + order status: keep on one row */
+  [class*="st-key-bline_"] {{ flex-wrap:nowrap !important; gap:8px !important; }}
+  .st-key-track_steps {{ flex-wrap:nowrap !important; gap:4px !important; }}
+  .st-key-track_steps p {{ font-size:.78rem !important; text-align:center; }}
 }}
 div[data-testid="stImage"] img {{ border-radius:12px; aspect-ratio:4/3; object-fit:contain; background:#fff; }}
 </style>
@@ -382,24 +469,10 @@ def _brand_html(s: dict) -> str:
 </div>"""
 
 
-def _goto_deals() -> None:
-    st.session_state["deals_only"] = True
-    st.session_state["cat"] = "All"
-    st.session_state["search"] = ""
-    st.session_state["scroll_to"] = "catalog"
-    st.session_state["_goto"] = "shop.py"
-
-
-def _goto_rates() -> None:
-    st.session_state["scroll_to"] = "delivery-rates"
-    st.session_state["_goto"] = "shop.py"
-
-
 def _goto_category(cat: str) -> None:
     st.session_state["cat"] = cat
     st.session_state["deals_only"] = False
     st.session_state["search"] = ""
-    st.session_state["scroll_to"] = "catalog"
     st.session_state["_goto"] = "shop.py"
 
 
@@ -414,16 +487,17 @@ def navbar(s: dict, products, sectors) -> None:
                               width="content"):
                 area = ui.current_sector(sectors)
                 if area is not None:
-                    st.button(f"📍 {area['name'].split(' (')[0]}", key="nav_area", on_click=_goto_rates,
-                              help="Your delivery area. Click to change it.")
+                    with st.container(key="gcc-area", width="content"):
+                        st.page_link("rates.py", label=area["name"].split(" (")[0], icon="📍",
+                                     help="Your delivery area. Click to change it.")
                 with st.container(key="gcc-cart", width="content"):
                     st.page_link("checkout.py", label=f"Basket ({count}) · {ui.rs(subtotal)}", icon="🛒")
         with st.container(key="gcc-links", horizontal=True, vertical_alignment="center", gap="small"):
             st.page_link("shop.py", label="Groceries")
-            st.button("Wholesale Deals", type="tertiary", on_click=_goto_deals, key="nav_deals")
-            st.button("Delivery Rates", type="tertiary", on_click=_goto_rates, key="nav_rates")
+            st.page_link("wholesale.py", label="Wholesale Deals")
+            st.page_link("rates.py", label="Delivery Rates")
             st.page_link("track.py", label="Track Order")
-            st.html('<a class="gcc-navlink" href="#store-info">Store Info</a>', width="content")
+            st.page_link("store.py", label="Store Info")
 
 
 def _pick_area(sid: str, name: str) -> None:
@@ -434,7 +508,6 @@ def _pick_area(sid: str, name: str) -> None:
 
 def delivery_rates(s: dict, sectors) -> None:
     """Sector-wise delivery table with a 'Deliver here' button per row (shop page)."""
-    st.html('<div style="height:28px"></div>')
     section_title("Sector-wise delivery", "Delivery rates across Islamabad",
                   "Pick your area to see your delivery charge at checkout. Your total bill is shown once you "
                   "enter your address. Not on the list? You can still order and the store adds the charge.",
@@ -457,13 +530,14 @@ def delivery_rates(s: dict, sectors) -> None:
                     st.html('<span class="gcc-rate-sel">✓ Your area</span>', width="content")
                 else:
                     st.button("Deliver here", key=f"pick_{r.id}", on_click=_pick_area, args=(r.id, r["name"]))
+    if chosen:
+        st.page_link("checkout.py", label="Continue to basket & checkout", icon="🛒")
     zs = zones(sectors)
     if zs:
         parts = " · ".join(f"{e(z['zone'])}: {ui.fee_text(z['fee'])}" for z in zs)
         frees = sorted({z["free_over"] for z in zs if z["free_over"]})
         free_txt = " · Free delivery " + " / ".join(f"over {ui.rs(f)}" for f in frees) if frees else ""
         st.html(f'<p class="gcc-sub" style="margin-top:10px;font-size:.92rem">{parts}{free_txt}.</p>')
-    scroll_if_requested("delivery-rates")
 
 
 # ---------------------------------------------------------------- hero (shop page)
@@ -499,44 +573,46 @@ def hero(s: dict, sectors) -> None:
 </div></section>""")
 
 
-# ---------------------------------------------------------------- store info cards (shop page)
-def _track(oid_key: str, phone_key: str) -> None:
-    oid = (st.session_state.get(oid_key) or "").strip().upper()
-    st.session_state["track_query"] = (oid, ui.clean_phone(st.session_state.get(phone_key) or ""))
-    st.session_state["_goto"] = "track.py"
-
-
-def store_info(s: dict) -> None:
-    st.html(f"""<div id="store" style="padding-top:24px">
-<div class="gcc-eyebrow">Visit or order</div>
-<div class="gcc-h2">{e(s['store_name'])} G-10 Markaz Islamabad</div>
-<p class="gcc-sub">Conveniently located in the commercial heart of G-10 Markaz. Walk into our aisles or have groceries
-delivered in <b>{e(s.get('local_eta',''))} in G-10</b> or <b>{e(s.get('other_eta',''))} across Islamabad</b>.</p></div>""")
-    c1, c2, c3 = st.columns(3, gap="medium")
+# ---------------------------------------------------------------- store info page
+def store_page(s: dict) -> None:
+    section_title("Visit or order", f"{s['store_name']} G-10 Markaz Islamabad",
+                  f"Conveniently located in the commercial heart of G-10 Markaz. Walk into our aisles or have groceries "
+                  f"delivered in <b>{e(s.get('local_eta',''))} in G-10</b> or "
+                  f"<b>{e(s.get('other_eta',''))} across Islamabad</b>.")
+    c1, c2 = st.columns([1.2, 1], gap="medium")
     with c1, st.container(key="info_store"):
         st.html(f"""
 <div class="gcc-card-h">{icon('store', 22)}G-10 Markaz store front</div>
 <div class="gcc-li">{icon('pin')}<div><b>Address</b><span>{e(s['store_address'])}</span></div></div>
+{f'<div class="gcc-li">{icon("pin")}<div><b>Landmark</b><span>{e(s["store_landmark"])}</span></div></div>' if s.get('store_landmark') else ''}
 <div class="gcc-li">{icon('clock')}<div><b>Store &amp; delivery hours</b><span>{e(s['store_timings'])}</span></div></div>
 <div class="gcc-li">{icon('phone')}<div><b>Shop landline</b><a class="gcc-mono" href="tel:{digits(s.get('store_landline',''))}">{e(s.get('store_landline',''))}</a></div></div>
 <div class="gcc-li">{icon('chat', 18, WA)}<div><b>WhatsApp helpline</b><a class="wa gcc-mono" href="https://wa.me/{digits(s.get('store_whatsapp',''))}" target="_blank" rel="noopener">{e(s.get('store_helpline',''))}</a></div></div>
 <div class="gcc-li">{icon('mail')}<div><b>Email</b><a href="mailto:{e(s.get('store_email',''))}" style="font-weight:500">{e(s.get('store_email',''))}</a></div></div>""")
         if s.get("map_url"):
-            st.link_button("📍 Open in Google Maps", s["map_url"], width="stretch")
-    with c2, st.container(key="info_track"):
-        st.html(f"""<div class="gcc-card-h">{icon('search', 22)}Track your order</div>
-<p class="gcc-sub">Enter your order ID (e.g. GCC-123456) and the phone number you ordered with.</p>""")
-        st.text_input("Order ID", placeholder="GCC-123456", key="home_trk_id")
-        st.text_input("Phone number", placeholder="03XX-XXXXXXX", key="home_trk_phone")
-        st.button("Check status", type="primary", width="stretch", on_click=_track,
-                  args=("home_trk_id", "home_trk_phone"), key="home_trk_go")
-    with c3, st.container(key="info_bulk"):
+            st.link_button("📍 Open in Google Maps", s["map_url"], width="stretch", type="primary")
+    with c2, st.container(key="info_how"):
+        st.html(f"""
+<div class="gcc-card-h">{icon('truck', 22)}How ordering works</div>
+<div class="gcc-li">{icon('search')}<div><b>1. Pick your groceries</b><span>Wholesale cash &amp; carry prices, updated live.</span></div></div>
+<div class="gcc-li">{icon('pin')}<div><b>2. Add your area and address</b><span>Your delivery charge and total bill appear at checkout.</span></div></div>
+<div class="gcc-li">{icon('chat', 18, WA)}<div><b>3. Send the order on WhatsApp</b><span>We confirm by phone before dispatch.</span></div></div>
+<div class="gcc-li">{icon('cash')}<div><b>4. Pay cash on delivery</b><span>{e(s.get('local_eta',''))} in G-10, {e(s.get('other_eta',''))} elsewhere.</span></div></div>""")
+        st.page_link("shop.py", label="Start shopping", icon="🛍️")
+        st.page_link("rates.py", label="See delivery rates", icon="🚚")
+
+
+# ---------------------------------------------------------------- wholesale / bulk request (wholesale page)
+def bulk_request(s: dict) -> None:
+    with st.container(key="info_bulk"):
         st.html(f"""<div class="gcc-card-h">{icon('box', 22)}Wholesale &amp; office rations</div>
-<p class="gcc-sub">Special cash &amp; carry pricing for schools, hostels, restaurants, offices and monthly household cartons.</p>""")
-        name = st.text_input("Your name / institution", key="bulk_name")
-        phone = st.text_input("WhatsApp number", placeholder="03XX-XXXXXXX", key="bulk_phone")
+<p class="gcc-sub">Special cash &amp; carry pricing for schools, hostels, restaurants, offices and monthly household
+cartons. Send us your list and we'll reply on WhatsApp with a quote.</p>""")
+        c1, c2 = st.columns(2)
+        name = c1.text_input("Your name / institution", key="bulk_name")
+        phone = c2.text_input("WhatsApp number", placeholder="03XX-XXXXXXX", key="bulk_phone")
         items = st.text_area("Items needed", placeholder="e.g. 5× Dalda cartons, 10× 10 kg atta bags, sugar bags",
-                             key="bulk_items", height=90)
+                             key="bulk_items", height=110)
         msg = (f"Assalam o Alaikum, I'd like bulk cash & carry pricing.\nName: {name}\nWhatsApp: {phone}\n"
                f"Items needed:\n{items}")
         st.link_button("Request bulk pricing on WhatsApp", ui.wa_link(s["store_whatsapp"], msg), type="primary",
@@ -550,7 +626,6 @@ def footer(s: dict, products, sectors) -> None:
     cats = [c for c in products.category.dropna().unique().tolist() if c][:7] if not products.empty else []
     zs = zones(sectors)
     with st.container(key="gcc-footer"):
-        st.html('<div id="store-info"></div>')
         c1, c2, c3, c4 = st.columns([1.25, 1, 1, 1.25], gap="large")
         with c1:
             st.html(f"""
@@ -564,7 +639,7 @@ and household goods, delivered across Islamabad.</p>
             st.html('<div class="gcc-f-h">GROCERY CATALOG</div>')
             for i, c in enumerate(cats):
                 st.button(c, type="tertiary", key=f"f_cat_{i}", on_click=_goto_category, args=(c,))
-            st.button("Wholesale deals", type="tertiary", key="f_deals", on_click=_goto_deals)
+            st.page_link("wholesale.py", label="Wholesale deals")
         with c3:
             rows = "".join(
                 f'<div class="gcc-f-line"><span class="{"gcc-y" if i == 0 else ""}"><b>{e(z["zone"])}:</b></span> '
@@ -574,7 +649,7 @@ and household goods, delivered across Islamabad.</p>
             st.html(f"""<div class="gcc-f-h">HOME DELIVERY</div>{rows}
 <div class="gcc-f-line" style="margin-top:10px">Area not listed? Order anyway and the store adds the charge.</div>
 <div class="gcc-f-line"><span class="gcc-y">Cash on delivery</span> across Islamabad</div>""")
-            st.button("View all sectors & fees", type="tertiary", key="f_rates", on_click=_goto_rates)
+            st.page_link("rates.py", label="View all sectors & fees")
         with c4:
             st.html(f"""<div class="gcc-f-h">HELPLINE &amp; CONTACTS</div>
 <div class="gcc-f-line">{e(s['store_address'])}</div>

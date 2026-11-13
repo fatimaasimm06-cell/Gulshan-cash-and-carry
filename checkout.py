@@ -87,20 +87,21 @@ left, right = st.columns([3, 2], gap="large")
 with left:
     st.subheader("Your basket")
     for ln in lines:
+        limit = max(1, min(ln["max_qty"], ln["stock"]))
+        if ln["qty"] > limit:  # stock dropped since it was added
+            ui.cart()[ln["sku"]] = limit
+            ln["qty"] = limit
+            st.warning(f"Only {limit} of {ln['name']} available — quantity adjusted.")
         with st.container(border=True):
-            a, b, c, d = st.columns([4, 2, 2, 1], vertical_alignment="center")
-            a.markdown(f"**{ln['name']}**  \n<span class='gcc-unit'>{ln['unit']} · {ui.rs(ln['price'])} each</span>",
-                       unsafe_allow_html=True)
-            limit = max(1, min(ln["max_qty"], ln["stock"]))
-            if ln["qty"] > limit:  # stock dropped since it was added
-                ui.cart()[ln["sku"]] = limit
-                ln["qty"] = limit
-                st.warning(f"Only {limit} of {ln['name']} available — quantity adjusted.")
-            b.number_input("Qty", min_value=0, max_value=limit, value=ln["qty"], step=1,
-                           key=f"bq_{ln['sku']}", on_change=_set_qty, args=(ln["sku"],),
-                           label_visibility="collapsed")
-            c.markdown(f"**{ui.rs(ln['price'] * ln['qty'])}**")
-            d.button("✕", key=f"rm_{ln['sku']}", on_click=_remove, args=(ln["sku"],), help="Remove")
+            st.markdown(f"**{ln['name']}**  \n<span class='gcc-unit'>{ln['unit']} · {ui.rs(ln['price'])} each</span>",
+                        unsafe_allow_html=True)
+            # quantity, line total and remove stay on one row, also on a phone
+            with st.container(key=f"bline_{ln['sku']}", horizontal=True, vertical_alignment="center", gap="small"):
+                st.number_input("Qty", min_value=0, max_value=limit, value=ln["qty"], step=1,
+                                key=f"bq_{ln['sku']}", on_change=_set_qty, args=(ln["sku"],),
+                                label_visibility="collapsed", width=130)
+                st.markdown(f"**{ui.rs(ln['price'] * ln['qty'])}**", width="stretch")
+                st.button("✕", key=f"rm_{ln['sku']}", on_click=_remove, args=(ln["sku"],), help="Remove")
     lines, subtotal, savings = ui.basket_lines(products)
 
 with right:
