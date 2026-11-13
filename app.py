@@ -32,8 +32,10 @@ s = db.get_settings(version)
 products = db.load_products(version)
 sectors = db.load_sectors(version)
 
-shop = st.Page("shop.py", title="Groceries", icon="🛍️", default=True)
+home = st.Page("home.py", title="Home", icon="🏠", default=True)
+shop = st.Page("shop.py", title="Groceries", icon="🛍️", url_path="groceries")
 pages = [
+    home,
     shop,
     st.Page("wholesale.py", title="Wholesale deals", icon="🔥", url_path="wholesale"),
     st.Page("rates.py", title="Delivery rates", icon="🚚", url_path="delivery-rates"),
@@ -46,7 +48,7 @@ pg = st.navigation(pages, position="hidden")
 # Shared header: on every page, and widgets here keep their value across pages.
 layout.topbar(s, sectors)
 layout.navbar(s, products, sectors)
-if pg.title == shop.title:
+if pg.title == home.title:  # the banner is only on the Home page; Groceries is the catalog alone
     layout.hero(s, sectors)
 
 with st.container(key="gcc-page"):
