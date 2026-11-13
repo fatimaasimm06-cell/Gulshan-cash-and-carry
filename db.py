@@ -56,8 +56,10 @@ sectors = Table(
     "sectors", metadata,
     Column("id", String(64), primary_key=True),
     Column("name", String(200), nullable=False),
+    Column("zone", String(64), default=""),
     Column("fee", Float, default=0),
     Column("eta", String(64), default=""),
+    Column("free_over", Float, default=0),  # 0 = never free
     Column("active", Boolean, default=True),
     Column("sort", Integer, default=0),
 )
@@ -74,7 +76,8 @@ orders = Table(
     Column("notes", Text, default=""),
     Column("subtotal", Float),
     Column("discount", Float),
-    Column("delivery_fee", Float),
+    Column("delivery_fee", Float),          # NULL while the store is still pricing an unlisted area
+    Column("fee_pending", Boolean, default=False),
     Column("total", Float),
     Column("payment_method", String(20), default="cod"),
     Column("status", String(20), default="pending", index=True),
@@ -132,8 +135,30 @@ def get_engine():
         os.makedirs("data", exist_ok=True)
         engine = create_engine("sqlite:///data/gulshan.db", connect_args={"check_same_thread": False})
     metadata.create_all(engine)
+    _migrate(engine)
     _seed_if_empty(engine)
     return engine
+
+
+def _migrate(engine) -> None:
+    """Add columns introduced after a database was first created (safe to run every start)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    want = {
+        "sectors": {"zone": "VARCHAR(64) DEFAULT ''", "free_over": "FLOAT DEFAULT 0"},
+        "orders": {"fee_pending": "BOOLEAN DEFAULT FALSE"},
+    }
+    reseed_sectors = False
+    with engine.begin() as conn:
+        for table, cols in want.items():
+            have = {c["name"] for c in insp.get_columns(table)}
+            for col, ddl in cols.items():
+                if col not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}"))
+                    if table == "sectors":
+                        reseed_sectors = True
+        if reseed_sectors:  # old sample areas -> the store's real delivery zones
+            conn.execute(delete(sectors))
 
 
 def using_sqlite() -> bool:
@@ -146,8 +171,8 @@ def _seed_if_empty(engine) -> None:
             conn.execute(insert(settings), [{"key": k, "value": v} for k, v in seed.SETTINGS.items()])
         if conn.execute(select(func.count()).select_from(sectors)).scalar() == 0:
             conn.execute(insert(sectors), [
-                {"id": i, "name": n, "fee": f, "eta": e, "active": True, "sort": idx}
-                for idx, (i, n, f, e) in enumerate(seed.SECTORS)
+                {"id": i, "name": n, "zone": z, "fee": f, "eta": e, "free_over": fo, "active": True, "sort": idx}
+                for idx, (i, n, z, f, e, fo) in enumerate(seed.SECTORS)
             ])
         if conn.execute(select(func.count()).select_from(products)).scalar() == 0:
             ts = now()
@@ -429,7 +454,22 @@ def load_sectors(version: int, active_only: bool = True) -> pd.DataFrame:
     if active_only:
         q = q.where(sectors.c.active.is_(True))
     with get_engine().connect() as conn:
-        return pd.read_sql(q, conn)
+        df = pd.read_sql(q, conn)
+    df["zone"] = df["zone"].fillna("")
+    df["free_over"] = df["free_over"].fillna(0).astype(float)
+    df["fee"] = df["fee"].fillna(0).astype(float)
+    return df
+
+
+def free_delivery_applies(subtotal: float, free_over: float) -> bool:
+    return bool(free_over) and subtotal >= free_over
+
+
+def _area_id(name: str) -> str:
+    slug = "".join(ch if ch.isalnum() else "-" for ch in name.lower()).strip("-")
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    return (slug or "area")[:50] + f"-{random.randint(100, 999)}"
 
 
 def save_sectors(df: pd.DataFrame) -> None:
@@ -440,9 +480,19 @@ def save_sectors(df: pd.DataFrame) -> None:
             name = str(r.get("name") or "").strip()
             if not name:
                 continue
-            sid = str(r.get("id") or "").strip() or name.lower().replace(" ", "-").replace("/", "-")[:60]
-            rows.append({"id": sid, "name": name, "fee": float(r.get("fee") or 0),
-                         "eta": str(r.get("eta") or ""), "active": bool(r.get("active", True)), "sort": idx})
+            sid = str(r.get("id") or "").strip()
+            if not sid or sid.lower() == "nan" or sid in {x["id"] for x in rows}:
+                sid = _area_id(name)
+
+            def num(v):
+                try:
+                    v = float(v)
+                    return 0.0 if pd.isna(v) else v
+                except (TypeError, ValueError):
+                    return 0.0
+            rows.append({"id": sid, "name": name, "zone": str(r.get("zone") or "").replace("nan", ""),
+                         "fee": num(r.get("fee")), "eta": str(r.get("eta") or "").replace("nan", ""),
+                         "free_over": num(r.get("free_over")), "active": bool(r.get("active", True)), "sort": idx})
         if rows:
             conn.execute(insert(sectors), rows)
         _bump_version(conn)
@@ -457,15 +507,27 @@ def _new_order_id(conn) -> str:
             return oid
 
 
-def place_order(cart: dict[str, int], customer: dict, sector_id: str, slot: str, notes: str) -> dict:
-    """Validate against live prices/stock, save the order, reduce stock. All or nothing."""
+def place_order(cart: dict[str, int], customer: dict, sector_id: str | None, slot: str, notes: str,
+                custom_area: str | None = None) -> dict:
+    """Validate against live prices/stock, save the order, reduce stock. All or nothing.
+
+    Give either a listed `sector_id`, or `custom_area` for an area not on the delivery list:
+    then the order is saved without a delivery charge and flagged for the store to price.
+    """
     if not cart:
         raise OrderError("Your basket is empty.")
     cfg = get_settings(catalog_version())
     with get_engine().begin() as conn:
-        sector = conn.execute(select(sectors).where(sectors.c.id == sector_id, sectors.c.active.is_(True))).first()
-        if not sector:
-            raise OrderError("Please pick a delivery area we currently serve.")
+        sector = None
+        if custom_area:
+            custom_area = custom_area.strip()
+            if len(custom_area) < 2:
+                raise OrderError("Please type the name of your area or sector.")
+        else:
+            sector = conn.execute(select(sectors).where(sectors.c.id == sector_id,
+                                                        sectors.c.active.is_(True))).first()
+            if not sector:
+                raise OrderError("Please choose your delivery area.")
         rows = {r.sku: r for r in conn.execute(select(products).where(products.c.sku.in_(list(cart)))).all()}
 
         lines, subtotal, mrp_total = [], 0.0, 0.0
@@ -486,9 +548,11 @@ def place_order(cart: dict[str, int], customer: dict, sector_id: str, slot: str,
         min_order = float(cfg.get("min_order") or 0)
         if subtotal < min_order:
             raise OrderError(f"Minimum order is Rs {min_order:,.0f}. Add Rs {min_order - subtotal:,.0f} more.")
-        free_over = float(cfg.get("free_delivery_threshold") or 0)
-        fee = 0.0 if (free_over and subtotal >= free_over) else float(sector.fee or 0)
-        total = subtotal + fee
+        if sector is not None:
+            fee = 0.0 if free_delivery_applies(subtotal, float(sector.free_over or 0)) else float(sector.fee or 0)
+            total, pending = subtotal + fee, False
+        else:
+            fee, total, pending = None, subtotal, True  # store adds the charge from the admin portal
 
         # Reduce stock atomically; fails if someone else bought the last units meanwhile.
         for ln in lines:
@@ -504,9 +568,11 @@ def place_order(cart: dict[str, int], customer: dict, sector_id: str, slot: str,
         ts = now()
         order = {
             "order_id": oid, "customer_name": customer["name"], "phone": customer["phone"],
-            "sector_id": sector.id, "sector_name": sector.name, "address": customer["address"],
+            "sector_id": sector.id if sector is not None else None,
+            "sector_name": sector.name if sector is not None else custom_area,
+            "address": customer["address"],
             "slot": slot, "notes": notes, "subtotal": subtotal, "discount": mrp_total - subtotal,
-            "delivery_fee": fee, "total": total, "payment_method": "cod", "status": "pending",
+            "delivery_fee": fee, "fee_pending": pending, "total": total, "payment_method": "cod", "status": "pending",
             "created_at": ts, "updated_at": ts,
         }
         conn.execute(insert(orders).values(**order))
@@ -538,6 +604,33 @@ def list_orders(status: str | None = None, days: int = 7) -> pd.DataFrame:
         q = q.where(orders.c.status == status)
     with get_engine().connect() as conn:
         return pd.read_sql(q, conn)
+
+
+def set_delivery_fee(order_id: str, fee: float, save_area: dict | None = None) -> None:
+    """Admin adds the delivery charge to an order (e.g. one from an unlisted area).
+
+    The customer's bill updates on their confirmation / Track order page automatically.
+    `save_area` = {"zone", "eta", "free_over"} also adds the area to the delivery list.
+    """
+    fee = max(float(fee), 0.0)
+    with get_engine().begin() as conn:
+        row = conn.execute(select(orders).where(orders.c.order_id == order_id)).first()
+        if not row:
+            raise ValueError("Order not found.")
+        conn.execute(update(orders).where(orders.c.order_id == order_id).values(
+            delivery_fee=fee, total=float(row.subtotal or 0) + fee, fee_pending=False, updated_at=now()))
+        if save_area:
+            name = (row.sector_name or "").strip()
+            exists = conn.execute(select(sectors.c.id).where(func.lower(sectors.c.name) == name.lower())).first()
+            if name and not exists:
+                last = conn.execute(select(func.max(sectors.c.sort))).scalar() or 0
+                conn.execute(insert(sectors).values(
+                    id=_area_id(name), name=name, zone=save_area.get("zone", ""), fee=fee,
+                    eta=save_area.get("eta", ""), free_over=float(save_area.get("free_over") or 0),
+                    active=True, sort=last + 1))
+                sid = conn.execute(select(sectors.c.id).where(sectors.c.name == name)).scalar()
+                conn.execute(update(orders).where(orders.c.order_id == order_id).values(sector_id=sid))
+            _bump_version(conn)
 
 
 def update_order_status(order_id: str, status: str) -> None:

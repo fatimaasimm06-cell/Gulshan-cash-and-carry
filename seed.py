@@ -100,44 +100,49 @@ PRODUCTS = [
      "Cavity-protection toothpaste."),
 ]
 
-# id, name, fee (PKR), eta
+# id, name, zone, fee (PKR), delivery time, free delivery over (PKR)
+_LOCAL = ("G-10 Local", 200, "20–30 mins", 7999)
+_ZONE1 = ("Zone 1 (Nearby)", 350, "45–60 mins", 10000)
+_ZONE2 = ("Zone 2 (Islamabad)", 400, "45–60 mins", 10000)
 SECTORS = [
-    ("g10-markaz", "G-10 Markaz", 0, "20–30 min"),
-    ("g10-sub", "G-10/1, G-10/2, G-10/3, G-10/4", 0, "30–45 min"),
-    ("g9", "G-9 (Karachi Company)", 100, "35–50 min"),
-    ("g11", "G-11", 100, "35–50 min"),
-    ("g8", "G-8", 150, "40–60 min"),
-    ("f10", "F-10", 150, "40–60 min"),
-    ("f11", "F-11", 150, "40–60 min"),
-    ("g7-g6", "G-7 / G-6", 200, "45–70 min"),
-    ("f8-f7-f6", "F-8 / F-7 / F-6", 200, "45–70 min"),
-    ("e11", "E-11 (MPCHS)", 200, "45–70 min"),
-    ("g13-g15", "G-13 / G-14 / G-15", 250, "50–75 min"),
-    ("i8-i10", "I-8 / I-9 / I-10", 200, "45–70 min"),
-    ("h8-h9", "H-8 / H-9", 200, "45–70 min"),
-    ("pwd-soan", "PWD / Soan Gardens", 350, "60–90 min"),
-    ("dha", "DHA Phase 1 & 2", 400, "60–90 min"),
-    ("bahria", "Bahria Town (Phases 1–8)", 400, "60–90 min"),
-    ("gulberg", "Gulberg Greens", 400, "60–90 min"),
-    ("b17", "B-17 Multi Gardens", 400, "60–90 min"),
-    ("chak-bani", "Chak Shahzad / Bani Gala", 450, "60–90 min"),
+    ("g10-markaz", "G-10 Markaz (Commercial Hub)", *_LOCAL),
+    ("g10-1", "Sector G-10/1", *_LOCAL),
+    ("g10-2", "Sector G-10/2", *_LOCAL),
+    ("g10-3", "Sector G-10/3", *_LOCAL),
+    ("g10-4", "Sector G-10/4", *_LOCAL),
+    ("g11", "Sector G-11 (G-11/1 to G-11/4)", *_ZONE1),
+    ("g9", "Sector G-9 (Karachi Company & G-9/1-4)", *_ZONE1),
+    ("f10", "Sector F-10 (Markaz & F-10/1-4)", *_ZONE1),
+    ("f11", "Sector F-11 (Markaz & F-11/1-4)", *_ZONE1),
+    ("f8", "Sector F-8 (Markaz & F-8/1-4)", *_ZONE1),
+    ("g13", "Sector G-13", *_ZONE2),
+    ("g8", "Sector G-8", *_ZONE2),
+    ("i10", "Sector I-10", *_ZONE2),
+    ("e11", "Sector E-11 (Golra & MPCHS)", *_ZONE2),
+    ("i8-i9", "Sector I-8 / I-9", *_ZONE2),
 ]
 
 SETTINGS = {
     "store_name": "Gulshan Cash & Carry",
     "tagline": "Bachat Aur Quality Sath Sath",
-    "store_address": "Shop #1-4, Ground Floor, Markaz G-10, Islamabad",
-    "store_whatsapp": "923008501234",
-    "store_helpline": "0300-8501234",
-    "store_timings": "8:00 AM – 12:00 Midnight, 7 days a week",
-    "free_delivery_threshold": "5000",
+    "store_address": "Plot #14, Main Commercial Boulevard, Shahzaib Arcade, Basement Dollar World, "
+                     "G-10 Markaz, Islamabad 44000",
+    "store_landmark": "Shahzaib Arcade, Basement Dollar World",
+    "store_landline": "051-2352223",
+    "store_whatsapp": "923361142223",
+    "store_helpline": "+92-336-1142223",
+    "store_email": "gulshancashandcarryg10@gmail.com",
+    "store_timings": "Daily 08:00 AM till 11:59 PM (7 days a week)",
+    "map_url": "https://www.google.com/maps/search/?api=1&query=Gulshan+Cash+and+Carry+G-10+Markaz+Islamabad",
+    "local_eta": "20–30 mins",
+    "other_eta": "45–60 mins",
     "min_order": "1000",
     "delivery_slots": "\n".join([
         "Express (45–60 min)",
         "Morning (9 AM – 12 PM)",
         "Afternoon (12 PM – 4 PM)",
         "Evening (4 PM – 8 PM)",
-        "Night (8 PM – 11 PM)",
+        "Night (8 PM – 11:59 PM)",
     ]),
     "catalog_version": "1",
 }

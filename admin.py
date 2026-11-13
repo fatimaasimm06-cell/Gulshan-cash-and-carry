@@ -82,7 +82,9 @@ with st.sidebar:
     if st.button("Sign out", width="stretch"):
         st.session_state.pop("admin_at", None)
         st.rerun()
-    st.page_link("shop.py", label="View the store", icon="🛍️")
+    store_url = db._secret("STORE_URL")
+    if store_url:
+        st.link_button("🛍️ Open the store", store_url, width="stretch")
     if db.using_sqlite():
         st.warning("Using a local SQLite file. On Streamlit Cloud this is wiped on restart — "
                    "set DATABASE_URL to a Postgres database before going live.")
@@ -111,24 +113,42 @@ def orders_board() -> None:
     if newest is not None:
         st.session_state["o_seen"] = newest
 
+    # Orders from areas not on the delivery list: the store must add the delivery charge
+    need_fee = db.list_orders("all", 30)
+    need_fee = need_fee[need_fee.fee_pending.fillna(False).astype(bool) & (need_fee.status != "cancelled")]
+    seen_fee = st.session_state.get("o_seen_fee", set())
+    for oid_ in set(need_fee.order_id) - seen_fee:
+        if "o_seen_fee" in st.session_state:  # don't toast on first load
+            st.toast(f"🔔 {oid_}: area not on the delivery list. Add the delivery charge.", icon="🚚")
+    st.session_state["o_seen_fee"] = set(need_fee.order_id)
+    if not need_fee.empty:
+        st.error(f"🚚 **{len(need_fee)} order(s) need a delivery charge** (area not on your list): "
+                 + ", ".join(f"{r.order_id} ({r.sector_name})" for r in need_fee.itertuples())
+                 + ". Open the order below and add the charge. The customer's bill updates by itself.")
+
     live = all_recent[all_recent.status != "cancelled"]
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
     m1.metric("Orders (24 h)", len(live))
     m2.metric("Sales (24 h)", ui.rs(live.total.sum() if not live.empty else 0))
     m3.metric("Waiting (pending)", int((all_recent.status == "pending").sum()) if not all_recent.empty else 0)
+    m4.metric("Need delivery charge", len(need_fee))
 
     if df.empty:
         st.info("No orders in this period.")
         return
     view = df[["order_id", "created_at", "customer_name", "phone", "sector_name", "total", "status"]].copy()
     view["status"] = view.status.map(db.STATUS_LABEL)
+    pend = df.fee_pending.fillna(False).astype(bool)
+    view.loc[pend, "status"] = "⚠️ Needs delivery charge · " + view.loc[pend, "status"]
     st.dataframe(view, hide_index=True, width="stretch", column_config={
         "order_id": "Order", "created_at": st.column_config.DatetimeColumn("Placed", format="DD MMM, hh:mm a"),
         "customer_name": "Customer", "phone": "Phone", "sector_name": "Area",
         "total": st.column_config.NumberColumn("Total (Rs)", format="%d"), "status": "Status"})
 
-    labels = {r.order_id: f"{r.order_id} · {r.customer_name} · {ui.rs(r.total)} · {db.STATUS_LABEL[r.status]}"
-              for r in df.itertuples()}
+    labels = {r.order_id: f"{'⚠️ ' if r.fee_pending else ''}{r.order_id} · {r.customer_name} · {ui.rs(r.total)}"
+                          f" · {db.STATUS_LABEL[r.status]}" for r in df.itertuples()}
+    if "o_open" in st.session_state and st.session_state["o_open"] not in labels:
+        del st.session_state["o_open"]
     oid = st.selectbox("Open order", list(labels), format_func=labels.get, key="o_open")
     order = db.get_order(oid)
     if not order:
@@ -145,7 +165,31 @@ def orders_board() -> None:
                 "name": "Item", "unit": "Pack", "qty": "Qty",
                 "unit_price": st.column_config.NumberColumn("Price", format="%d"),
                 "line_total": st.column_config.NumberColumn("Line total", format="%d")})
-            st.markdown(f"Delivery {ui.rs(order['delivery_fee'])} · **Total {ui.rs(order['total'])}** (cash)")
+            if order.get("fee_pending"):
+                st.warning(f"**{order['sector_name']}** is not on your delivery list. Items {ui.rs(order['subtotal'])}"
+                           " + delivery charge (not added yet).")
+                with st.form(f"fee_{oid}"):
+                    fee = st.number_input("Delivery charge for this order (Rs)", min_value=0, step=50, value=400)
+                    save = st.checkbox(f"Also add “{order['sector_name']}” to the delivery list", value=True,
+                                       help="Future customers from this area then see the charge automatically.")
+                    c1, c2, c3 = st.columns(3)
+                    zone = c1.text_input("Zone", value="Zone 3 (Outer)")
+                    eta = c2.text_input("Delivery time", value="60–90 mins")
+                    free_over = c3.number_input("Free delivery over (Rs, 0 = never)", min_value=0, step=500, value=0)
+                    if st.form_submit_button("Add charge to the bill", type="primary"):
+                        db.set_delivery_fee(oid, fee, {"zone": zone, "eta": eta, "free_over": free_over}
+                                            if save else None)
+                        st.toast(f"Added {ui.fee_text(fee)} delivery to {oid}. New total "
+                                 f"{ui.rs(order['subtotal'] + fee)}.", icon="✅")
+                        st.rerun()
+            else:
+                st.markdown(f"Delivery {ui.fee_text(order['delivery_fee'])} · **Total {ui.rs(order['total'])}** (cash)")
+                with st.popover("Change delivery charge"):
+                    fee = st.number_input("Delivery charge (Rs)", min_value=0, step=50,
+                                          value=int(order["delivery_fee"] or 0), key=f"chg_{oid}")
+                    if st.button("Update bill", key=f"chgb_{oid}", type="primary"):
+                        db.set_delivery_fee(oid, fee)
+                        st.rerun()
         with b:
             new_status = st.selectbox("Status", db.STATUSES, index=db.STATUSES.index(order["status"]),
                                       format_func=db.STATUS_LABEL.get, key=f"st_{oid}")
@@ -153,8 +197,10 @@ def orders_board() -> None:
                 db.update_order_status(oid, new_status)
                 st.toast(f"{oid} → {db.STATUS_LABEL[new_status]}")
                 st.rerun(scope="fragment")
+            total_txt = (f"items {ui.rs(order['total'])}, delivery charge to be added" if order.get("fee_pending")
+                         else f"total {ui.rs(order['total'])} incl. delivery {ui.fee_text(order['delivery_fee'])}")
             msg = (f"Assalam o Alaikum {order['customer_name']}, your Gulshan Cash & Carry order "
-                   f"{oid} ({ui.rs(order['total'])}) is now: {db.STATUS_LABEL[new_status]}.")
+                   f"{oid} ({total_txt}) is now: {db.STATUS_LABEL[new_status]}.")
             st.link_button("💬 WhatsApp customer", ui.wa_link(order["phone"], msg), width="stretch")
             st.link_button("📞 Call customer", f"tel:{order['phone']}", width="stretch")
 
@@ -399,32 +445,48 @@ with t_import:
 # ================================================================ SETTINGS
 with t_settings:
     with st.form("store_settings"):
-        st.markdown("**Store details**")
+        st.markdown("**Store details** (shown in the website's top bar, header, store cards and footer)")
         c1, c2 = st.columns(2)
         store_whatsapp = c1.text_input("Store WhatsApp number (orders go here)", s["store_whatsapp"],
-                                       help="Format 923001234567 or 03001234567")
-        store_helpline = c2.text_input("Helpline shown to customers", s["store_helpline"])
-        store_address = c1.text_input("Address", s["store_address"])
-        store_timings = c2.text_input("Timings", s["store_timings"])
+                                       help="Format 923361142223 or 03361142223")
+        store_helpline = c2.text_input("WhatsApp number as shown to customers", s["store_helpline"])
+        store_landline = c1.text_input("Shop landline", s.get("store_landline", ""))
+        store_email = c2.text_input("Email", s.get("store_email", ""))
+        store_address = st.text_input("Address", s["store_address"])
         c1, c2 = st.columns(2)
-        free = c1.number_input("Free delivery over (Rs, 0 = never)", min_value=0,
-                               value=int(float(s["free_delivery_threshold"] or 0)), step=500)
-        min_order = c2.number_input("Minimum order (Rs)", min_value=0, value=int(float(s["min_order"] or 0)), step=100)
+        store_landmark = c1.text_input("Landmark", s.get("store_landmark", ""))
+        store_timings = c2.text_input("Timings", s["store_timings"])
+        map_url = st.text_input("Google Maps link", s.get("map_url", ""),
+                                help="Open your shop on Google Maps → Share → Copy link")
+        c1, c2 = st.columns(2)
+        local_eta = c1.text_input("Delivery time in G-10", s.get("local_eta", ""))
+        other_eta = c2.text_input("Delivery time to other sectors", s.get("other_eta", ""))
+        min_order = st.number_input("Minimum order (Rs)", min_value=0, value=int(float(s["min_order"] or 0)), step=100)
         slots = st.text_area("Delivery slots (one per line)", s["delivery_slots"], height=130)
         if st.form_submit_button("Save store settings", type="primary"):
             db.save_settings({"store_whatsapp": store_whatsapp.strip(), "store_helpline": store_helpline.strip(),
-                              "store_address": store_address.strip(), "store_timings": store_timings.strip(),
-                              "free_delivery_threshold": free, "min_order": min_order, "delivery_slots": slots})
+                              "store_landline": store_landline.strip(), "store_email": store_email.strip(),
+                              "store_address": store_address.strip(), "store_landmark": store_landmark.strip(),
+                              "store_timings": store_timings.strip(), "map_url": map_url.strip(),
+                              "local_eta": local_eta.strip(), "other_eta": other_eta.strip(),
+                              "min_order": min_order, "delivery_slots": slots})
             st.toast("Settings saved", icon="✅")
             st.rerun()
 
-    st.markdown("**Delivery areas & fees**")
-    sec = db.load_sectors(version, active_only=False)[["id", "name", "fee", "eta", "active"]]
+    st.markdown("**Delivery areas & fees** (shown in the store's Delivery rates table and used at checkout)")
+    st.caption("Add a row for a new area, untick *Delivering* to hide one. Free delivery applies when the "
+               "items total reaches the area's limit (0 = never free).")
+    sec = db.load_sectors(version, active_only=False)[["id", "name", "zone", "fee", "eta", "free_over", "active"]]
     sec_edit = st.data_editor(sec, num_rows="dynamic", hide_index=True, width="stretch", key=f"sec_{version}",
                               column_config={
-                                  "id": st.column_config.TextColumn("ID", help="Leave blank for new rows"),
-                                  "name": "Area", "fee": st.column_config.NumberColumn("Fee (Rs)", min_value=0, step=50),
-                                  "eta": "Delivery time", "active": "Delivering"})
+                                  "id": None,
+                                  "name": st.column_config.TextColumn("Sector / area", required=True),
+                                  "zone": "Zone",
+                                  "fee": st.column_config.NumberColumn("Delivery fee (Rs)", min_value=0, step=50),
+                                  "eta": "Delivery time",
+                                  "free_over": st.column_config.NumberColumn("Free delivery over (Rs)", min_value=0,
+                                                                             step=500),
+                                  "active": "Delivering"})
     if st.button("Save delivery areas", type="primary"):
         db.save_sectors(sec_edit)
         st.toast("Delivery areas saved", icon="✅")
