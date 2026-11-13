@@ -1,124 +1,217 @@
-# Gulshan Cash & Carry — Online Grocery (Streamlit)
+🛒 Gulshan Cash & Carry: Online Grocery Store
 
-Online ordering for Gulshan Cash & Carry, G-10 Markaz, Islamabad. *Bachat Aur Quality Sath Sath.*
+Bachat Aur Quality Sath Sath
 
-Shoppers browse the catalog, pick their sector, and place cash-on-delivery orders that land on the
-store's admin board and in the store's WhatsApp. The admin manages orders, products, pictures,
-barcodes and prices; every admin save shows up in open store pages within about 5 seconds.
+The online ordering website for Gulshan Cash & Carry, G-10 Markaz, Islamabad. Customers browse groceries at wholesale prices, choose their sector, and order with cash on delivery. The store manages everything from a password-protected Admin page, and every change appears in the store within seconds.
 
-## What's inside
+Built with Streamlit (Python) and hosted free on Streamlit Community Cloud, with a free Supabase database.
 
-| Page | What it does |
-| --- | --- |
-| **Shop** | Catalog with search (English, Urdu, brand, barcode), category chips, deals filter, sorting, sector picker with delivery fee and ETA |
-| **Basket & checkout** | Change quantities, free-delivery progress, minimum order check, delivery details, cash on delivery, "Send on WhatsApp" button with the full itemised order |
-| **Track order** | Order ID + phone shows live status (auto-refresh), one-tap re-order |
-| **Admin** (login required) | Orders board with new-order alerts and status updates · barcode scan to find or add a product · add/edit/delete products with picture upload or camera photo, Urdu name and description · quick-edit table for prices and stock · Excel/CSV import and export · store settings and delivery areas/fees |
+✨ Features
+For customers
+Shop: browse the full catalog with pictures, prices, MRP and savings.
+Search: in English or Urdu, or by brand or barcode (e.g. atta, چاول, Dalda).
+Filters: browse by category, show Deals only, and sort by price or biggest savings.
+Delivery area: choose an Islamabad sector to see the delivery fee and time.
+Basket: change quantities, see the total, and a progress bar shows how much more is needed for free delivery.
+Checkout: enter name, mobile number, address, delivery slot and notes, then pay cash on delivery.
+WhatsApp: after ordering, one tap sends the full itemised order to the store's WhatsApp.
+Track order: enter the order ID and phone number to see live status (Pending → Packing → Out for delivery → Delivered).
+Re-order: add a past order's items back to the basket in one tap.
+For the store admin
+🔒 Secure login: username and password, with 5 wrong attempts locking the form for 5 minutes.
+📦 Orders board:
+New orders appear automatically, with a 🔔 alert.
+Update an order's status, then WhatsApp or call the customer in one tap.
+See the last 24 hours' orders and sales, and how many are waiting.
+🔎 Barcode scanning: works with any USB or Bluetooth barcode reader. Scan a product to edit it, or scan a new barcode to add a new product.
+🖼️ Products:
+Add, edit or delete products.
+Each product can have an English and Urdu name, brand, category, pack size, description, price, MRP, stock, a per-order limit and a "Deal" tag.
+📷 Pictures: upload from the computer, take a photo with the camera, or paste an image link.
+📋 Quick edit: change prices and stock for many products in one table.
+⬆️ Excel import and export: update the whole price list from an Excel or CSV file, and download the catalog and orders.
+⚙️ Settings:
+Store WhatsApp number, helpline, address and timings.
+Free-delivery limit, minimum order and delivery slots.
+Delivery areas and the fee for each.
+⚡ Real-time updates
 
-```
-gulshan-streamlit/
-├── app.py                 # entry point + page navigation
-├── views/                 # shop.py, checkout.py, track.py, admin.py
-├── core/
-│   ├── db.py              # all database reads/writes (SQLite or Postgres)
-│   ├── ui.py              # styling, basket, images, WhatsApp, real-time watcher
-│   └── seed.py            # sample products, sectors and settings (first run only)
-├── assets/logo.png
-├── .streamlit/config.toml # brand colours
-├── .streamlit/secrets.toml.example
-└── requirements.txt
-```
+Every change the admin saves (price, stock, picture, new product or setting) shows up on every open customer page within about 5 seconds, with no refresh needed. Stock goes down automatically when an order is placed, and goes back up if the order is cancelled.
 
-## Run it on your computer
+📁 Files
 
-```bash
-pip install -r requirements.txt
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # then edit it
-streamlit run app.py
-```
+All files sit together in one folder, with no sub-folders.
 
-Without `DATABASE_URL` the app makes `data/gulshan.db` (SQLite) and fills it with sample products.
+File	What it is
+app.py	Starts the website and sets up the menu
+shop.py	The Shop page
+checkout.py	The Basket & checkout page
+track.py	The Track order page
+admin.py	The Admin page
+db.py	Saves and loads everything from the database
+ui.py	Design, basket, pictures, WhatsApp messages, live updates
+seed.py	Sample products, delivery areas and settings, loaded on first start only
+logo.png	Store logo
+requirements.txt	List of Python packages Streamlit installs
+.gitignore	Keeps private files off GitHub
+🚀 How to put the website online
 
-## Admin login
+You need three free accounts: Supabase (database), GitHub (stores the code) and Streamlit (runs the website).
 
-The Admin page asks for a username **and** password. Both live only in Streamlit secrets, never in the code.
+Step 1: Create the database (Supabase)
+Go to supabase.com/dashboard and click New project.
+Fill in the form:
+Name: gulshan-cash-carry
+Database password: letters and numbers only. Symbols like @ # / : break the connection link. Write it down.
+Region: South Asia (Mumbai)
+Click Create new project and wait 1–2 minutes.
+Click Connect at the top and choose URI with Session pooler. Copy the link.
+Replace [YOUR-PASSWORD] in the link with your password. Keep this link private.
+postgresql://postgres.xxxx:YourPassword123@aws-0-ap-south-1.pooler.supabase.com:5432/postgres
 
-```toml
+⚠️ Without a database, Streamlit stores data in a temporary file that is deleted every time the app restarts, so orders and products would be lost.
+
+Step 2: Upload the code (GitHub)
+On github.com, click + → New repository, name it gulshan-streamlit, and click Create repository.
+Click uploading an existing file, select all the files listed above, and click Commit changes.
+Your repository's main page should show app.py, shop.py, admin.py and the other files directly. If they're inside another folder, see Troubleshooting.
+Step 3: Publish the website (Streamlit)
+Go to share.streamlit.io, sign in with GitHub, and click Create app.
+Choose Deploy a public app from GitHub and fill in:
+Repository: your-name/gulshan-streamlit
+Branch: main
+Main file path: app.py
+App URL: choose a name, e.g. gulshan-cash-carry
+Open Advanced settings, choose Python 3.12, and paste this into Secrets with your own values:
+toml
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_SHA256 = "…64-character hash…"
-```
+ADMIN_PASSWORD = "choose-a-long-password"
+DATABASE_URL = "postgresql://postgres.xxxx:YourPassword123@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+Click Deploy. The first start takes 2–4 minutes. The website creates its database tables and loads sample products automatically.
 
-Make the hash (type your password when asked; it is not shown):
+Your site is now live at https://your-app-name.streamlit.app 🎉
 
-```bash
+Step 4: Set up the store
+
+Open the site, click Admin in the menu, and sign in.
+
+In ⚙️ Settings, set the real store WhatsApp number, helpline, delivery fees, free-delivery limit and minimum order.
+Load your real price list:
+Either go to ⬆️ Import / export, download the template, fill it in Excel, and upload it.
+Or scan products one by one in 🔎 Scan / add product.
+Delete or hide sample products you don't sell.
+
+⚠️ The sample products, prices, delivery fees and WhatsApp number are placeholders. Change them before sharing the link with customers.
+
+🧑‍💼 Admin guide
+Signing in
+
+Click Admin in the menu and enter the username and password from the Streamlit secrets. You stay signed in until you close or refresh the page. To change the password, edit ADMIN_PASSWORD in Streamlit → your app → Settings → Secrets.
+
+🔐 Extra security (optional): instead of the plain password, store only a scrambled "hash" of it. Run this on any computer with Python, type your password, and copy the result:
+
+bash
 python -c "import hashlib,getpass;print(hashlib.sha256(getpass.getpass().encode()).hexdigest())"
-```
 
-Five wrong attempts lock the form for 5 minutes. A sign-in lasts 12 hours or until the browser tab is
-closed/refreshed.
+Then use ADMIN_PASSWORD_SHA256 = "the-result" in secrets instead of ADMIN_PASSWORD.
 
-## Barcode reader
+Handling orders (📦 Orders tab)
+New orders appear automatically, and the board refreshes every 15 seconds.
+Open an order to see items, address and notes.
+Change the status as you work: Packing → Out for delivery → Delivered.
+Use WhatsApp customer or Call customer to confirm. Call first-time customers back before sending a rider.
+Cancelled orders put their stock back automatically.
+Adding products with a barcode reader (🔎 Scan / add product tab)
+Plug in the barcode reader. The cursor is already in the Scan barcode box.
+Scan the product:
+Already in the catalog: it opens so you can edit it.
+New barcode: a new-product form opens with the barcode filled in.
+Fill in the name, Urdu name, price, stock and description, and add a picture.
+Click 💾 Save product. It's live in the store within about 5 seconds.
 
-Any USB or Bluetooth barcode scanner works — they type the code like a keyboard and press Enter.
+No barcode reader? Type the number and press Enter. To add a product without a barcode, click ➕ New product.
 
-1. Admin → **Scan / add product** (the cursor is already in the scan box).
-2. Scan. If the barcode exists, that product opens for editing. If not, a new-product form opens with
-   the barcode filled in.
-3. Fill in name, price, picture etc. and press **Save product**. It is live in the store within ~5 s.
+Pictures
+Upload picture: JPG, PNG or WEBP from your computer or phone.
+Take photo with camera: turn on the switch and take the photo.
+Image link: paste a web address of a picture.
 
-Barcodes are unique: saving one that another product already uses is blocked and names that product.
+Uploaded pictures are automatically straightened, placed on a white square and made smaller, so they load fast.
 
-## Pictures
+Changing many prices at once (📋 All products tab)
 
-Upload JPG/PNG/WEBP from the device, take a photo with the phone/laptop camera, or paste an image link.
-Uploads are straightened, padded to a white square, shrunk to 800 px and stored **in the database**,
-so they survive app restarts.
+Edit price, MRP, stock, per-order limit, Deal and Visible directly in the table, then click 💾 Save changes.
 
-## How "real-time" works
+Excel price list (⬆️ Import / export tab)
 
-Every admin save (product, price, stock, picture, settings, delivery areas, and each new order's stock
-change) increases a `catalog_version` number. Each open store page checks that number every 5 seconds
-and reloads its data only when it changed. The admin orders board refreshes every 15 seconds and pops a
-🔔 alert when a new order arrives.
+Download the template, fill it in, and upload it. These are the columns:
 
-## Deploy on Streamlit Community Cloud
+Column	Required	Example
+name	✅	Chakki Atta
+price	✅	1450
+sku		ATTA-SR-10
+barcode		8961234567890
+urdu_name		چکی آٹا
+brand		Sunridge
+category		Atta & Flour
+unit		10 kg bag
+description		Stone-ground whole wheat flour
+mrp		1550
+stock		120
+is_deal		yes / no
+max_qty		20
+image_url		https://…
+active		yes / no
 
-> **Use a hosted database.** Streamlit Cloud deletes local files whenever the app restarts or
-> redeploys, so with SQLite you would lose orders and products. A free Postgres from
-> [Supabase](https://supabase.com) or [Neon](https://neon.tech) fixes this.
+Rows are matched to existing products by barcode, then by SKU:
 
-1. Create a free Postgres database (Supabase: *Project → Connect → Session pooler* connection string;
-   Neon: *Connection string*). It looks like `postgresql://user:password@host:5432/dbname`.
-2. Push this folder to a GitHub repository. `.gitignore` already keeps `secrets.toml` and `data/` out.
-   ```bash
-   git init && git add . && git commit -m "Gulshan Cash & Carry Streamlit app"
-   git branch -M main
-   git remote add origin https://github.com/<you>/gulshan-streamlit.git
-   git push -u origin main
-   ```
-3. Go to [share.streamlit.io](https://share.streamlit.io), sign in with GitHub, click **Create app**,
-   choose the repo, branch `main`, main file `app.py`.
-4. Open **Advanced settings → Secrets** and paste:
-   ```toml
-   ADMIN_USERNAME = "admin"
-   ADMIN_PASSWORD_SHA256 = "…your hash…"
-   DATABASE_URL = "postgresql://user:password@host:5432/dbname"
-   ```
-5. Click **Deploy**. The first start creates the tables and loads the sample catalog.
-6. Sign in to **Admin → Settings**: set the real store WhatsApp number, helpline, delivery fees,
-   free-delivery threshold and minimum order. Then load your real price list from **Import / export**.
-7. Every `git push` to `main` redeploys automatically. Data stays in Postgres.
+Merge updates matching products and adds new ones.
+Replace does the same, and also hides products that aren't in the file.
 
-## Before going live — please confirm
+Rows with mistakes are skipped and listed so you can fix them.
 
-- Store WhatsApp number (sample: `923008501234`).
-- Delivery fee and ETA per sector, free-delivery threshold (sample Rs 5,000) and minimum order
-  (sample Rs 1,000).
-- Real prices and stock — the sample catalog prices are placeholders.
+💻 Run it on your own computer (optional)
+bash
+pip install -r requirements.txt
+mkdir .streamlit
 
-## Price list columns (Excel/CSV import)
+Create the file .streamlit/secrets.toml with at least:
 
-`sku, barcode, name, urdu_name, brand, category, unit, description, price, mrp, stock, is_deal, max_qty, image_url, active`
+toml
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "test123"
 
-Only `name` and `price` are required. Rows match existing products by barcode, then SKU. *Merge* updates
-and adds; *Replace* also hides products missing from the file. Download a ready template from the Admin page.
+Then start it:
+
+bash
+streamlit run app.py
+
+Without DATABASE_URL, it uses a local test database file (data/gulshan.db).
+
+🎨 Store colours (optional)
+
+The buttons already use the store's blue. To colour everything else too (category chips, switches):
+
+On GitHub, click Add file → Create new file.
+Type the name .streamlit/config.toml. The slash creates the folder automatically.
+Paste the following and commit:
+toml
+[theme]
+primaryColor = "#001089"
+backgroundColor = "#FAFAF9"
+secondaryBackgroundColor = "#EEF0FB"
+textColor = "#1C1917"
+🛠️ Troubleshooting
+Problem	Fix
+ModuleNotFoundError: No module named 'db'	The files are inside a folder on GitHub. Set Main file path to folder-name/app.py, or re-upload the files to the top level.
+"Admin login is not set up"	Add ADMIN_USERNAME and ADMIN_PASSWORD in Streamlit → Settings → Secrets, then reboot the app.
+Database connection error	Check DATABASE_URL: use the Session pooler link, replace [YOUR-PASSWORD], and make sure the password has no symbols.
+Orders or products disappeared	DATABASE_URL is missing, so the temporary file was wiped. Add the Supabase link to secrets.
+"This app has gone to sleep"	Free Streamlit apps sleep after a period with no visitors. Click Yes, get this app back up; it takes about 30 seconds.
+Supabase says the project is paused	Free projects pause after 7 days of very low use. Open Supabase and click Resume project. Your data is kept.
+Changes on GitHub don't show	Streamlit redeploys automatically after each commit. Wait 1–2 minutes, or use Reboot app in the Streamlit menu.
+📞 Store contact
+Address: Shop #1-4, Ground Floor, Markaz G-10, Islamabad 44000
+Helpline / WhatsApp: 0300-8501234
+Email: gulshancashandcarryg10@gmail.com
+Timings: 8:00 AM – 12:00 Midnight, 7 days a week
