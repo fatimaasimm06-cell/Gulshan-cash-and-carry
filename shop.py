@@ -1,31 +1,13 @@
 import streamlit as st
 
 import db
+import layout
 import ui
 
-version = ui.live_catalog()  # reloads this page within seconds of any admin change
-s = ui.cfg()
+version = ui.version()
+s = db.get_settings(version)
 products = db.load_products(version)
 sectors = db.load_sectors(version)
-
-sector = ui.sector_picker(sectors)
-ui.sidebar_basket(products)
-with st.sidebar:
-    st.divider()
-    st.caption(f"📍 {s['store_address']}")
-    st.caption(f"🕗 {s['store_timings']}")
-    st.caption(f"📞 Helpline {s['store_helpline']}")
-    st.markdown(f'<span class="gcc-live">● Live prices · updates every {ui.POLL_SECONDS}s</span>',
-                unsafe_allow_html=True)
-
-ui.header(f"{s['store_name']} · G-10 Markaz",
-          f"{s['tagline']} — wholesale prices, cash on delivery across Islamabad")
-
-free_over = float(s.get("free_delivery_threshold") or 0)
-if sector is not None:
-    fee_txt = "free delivery" if sector.fee == 0 else f"delivery {ui.rs(sector.fee)}"
-    extra = f" · free on orders over {ui.rs(free_over)}" if free_over and sector.fee else ""
-    st.caption(f"Delivering to **{sector['name']}** — {fee_txt}, about {sector.eta}{extra}")
 
 
 def _add(sku: str, qkey: str, info: dict) -> None:
@@ -36,7 +18,7 @@ def _add(sku: str, qkey: str, info: dict) -> None:
 def product_card(p, prefix: str) -> None:
     sku = p.sku
     in_cart = ui.cart().get(sku, 0)
-    with st.container(border=True):
+    with st.container(key=f"pc_{prefix}_{sku}"):
         ui.product_image(p)
         st.markdown(f'<div class="gcc-name">{p["name"]}</div>', unsafe_allow_html=True)
         if p.urdu_name:
@@ -56,7 +38,8 @@ def product_card(p, prefix: str) -> None:
             c1.number_input("Qty", min_value=1, max_value=limit, value=1, step=1,
                             key=f"{prefix}_q_{sku}", label_visibility="collapsed")
             c2.button("Add", key=f"{prefix}_add_{sku}", type="primary", width="stretch",
-                      on_click=_add, args=(sku, f"{prefix}_q_{sku}", {"name": p["name"], "max_qty": p.max_qty, "stock": p.stock}))
+                      on_click=_add, args=(sku, f"{prefix}_q_{sku}",
+                                           {"name": p["name"], "max_qty": p.max_qty, "stock": p.stock}))
         if in_cart:
             st.caption(f"✅ {in_cart} in basket")
         with st.popover("Details", width="stretch"):
@@ -70,7 +53,7 @@ def product_card(p, prefix: str) -> None:
 def grid(df, prefix: str, cols: int = 4) -> None:
     rows = [df.iloc[i:i + cols] for i in range(0, len(df), cols)]
     for chunk in rows:
-        columns = st.columns(cols)
+        columns = st.columns(cols, gap="medium")
         for col, (_, p) in zip(columns, chunk.iterrows()):
             with col:
                 product_card(p, prefix)
@@ -80,15 +63,36 @@ if products.empty:
     st.info("The catalog is empty. The store will add products soon.")
     st.stop()
 
-# ---------------------------------------------------------------- filters
+# ---------------------------------------------------------------- filter state (set by header/footer links too)
+st.session_state.setdefault("cat", "All")
+st.session_state.setdefault("deals_only", False)
+st.session_state.setdefault("search", "")
+cats = ["All"] + sorted(c for c in products.category.unique() if c)
+if st.session_state["cat"] not in cats:
+    st.session_state["cat"] = "All"
+
+no_filters = (st.session_state["cat"] == "All" and not st.session_state["deals_only"]
+              and not st.session_state["search"].strip())
+
+# ---------------------------------------------------------------- deals
+deals = products[products.is_deal & (products.stock > 0)].head(4)
+if no_filters and not deals.empty:
+    layout.section_title("Weekly Markaz savings", "Featured wholesale deals in G-10", anchor="deals")
+    grid(deals, "deal")
+    st.html('<div style="height:24px"></div>')
+
+# ---------------------------------------------------------------- catalog
+layout.section_title("Daily fresh inventory", "Browse grocery catalog",
+                     "Wholesale cash & carry rates, delivered across Islamabad.", anchor="catalog")
+
 search = st.text_input("Search", placeholder="Search atta, چاول, Dalda, tea …",
                        label_visibility="collapsed", key="search")
-cats = ["All"] + sorted(c for c in products.category.unique() if c)
-cat = st.pills("Category", cats, default="All", key="cat", label_visibility="collapsed") or "All"
-f1, f2 = st.columns([1, 1])
+cat = st.pills("Category", cats, key="cat", label_visibility="collapsed") or "All"
+f1, f2 = st.columns([1, 1], vertical_alignment="center")
 deals_only = f1.toggle("🔥 Deals only", key="deals_only")
 sort = f2.selectbox("Sort", ["Featured", "Price: low to high", "Price: high to low", "Biggest savings"],
                     key="sort", label_visibility="collapsed")
+layout.scroll_if_requested("catalog")
 
 df = products
 if cat != "All":
@@ -110,15 +114,8 @@ else:  # featured: in-stock deals first
     df = df.assign(_k=(df.stock > 0).astype(int) * 2 + df.is_deal.astype(int)).sort_values(
         ["_k", "category", "name"], ascending=[False, True, True])
 
-no_filters = cat == "All" and not deals_only and not search.strip()
-if no_filters:
-    deals = products[products.is_deal & (products.stock > 0)].head(4)
-    if not deals.empty:
-        st.subheader("🔥 This week's wholesale deals")
-        grid(deals, "deal")
-        st.divider()
-
-st.subheader("All groceries" if no_filters else f"{len(df)} item{'s' if len(df) != 1 else ''} found")
+if not (cat == "All" and not deals_only and not search.strip()):
+    st.caption(f"{len(df)} item{'s' if len(df) != 1 else ''} found")
 if df.empty:
     st.info("No products match. Try “atta”, “rice”, “oil” or “milk”.")
 else:

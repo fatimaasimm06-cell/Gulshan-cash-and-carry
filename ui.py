@@ -157,22 +157,47 @@ def basket_lines(products: pd.DataFrame) -> tuple[list[dict], float, float]:
     return lines, subtotal, savings
 
 
-def delivery_fee(subtotal: float, sector_fee: float, settings: dict) -> float:
-    free_over = float(settings.get("free_delivery_threshold") or 0)
-    return 0.0 if (free_over and subtotal >= free_over) else float(sector_fee or 0)
+def delivery_fee(subtotal: float, sector) -> float:
+    """Delivery charge for a listed area: its fee, or free once the basket reaches its limit."""
+    free_over = float(sector.free_over or 0)
+    return 0.0 if db.free_delivery_applies(subtotal, free_over) else float(sector.fee or 0)
 
 
-def sector_picker(sectors: pd.DataFrame, where=st.sidebar) -> pd.Series | None:
+def fee_text(fee) -> str:
+    return "Free" if fee == 0 else rs(fee)
+
+
+def sector_picker(sectors: pd.DataFrame, where=st.sidebar, compact: bool = False) -> pd.Series | None:
     if sectors.empty:
         where.warning("No delivery areas set up yet.")
         return None
     ids = sectors["id"].tolist()
     current = st.session_state.get("sector_id")
-    idx = ids.index(current) if current in ids else 0
-    labels = {r.id: f"{r['name']} — {'Free' if r.fee == 0 else rs(r.fee)} · {r.eta}" for _, r in sectors.iterrows()}
-    choice = where.selectbox("📍 Deliver to", ids, index=idx, format_func=labels.get, key="sector_select")
+    if st.session_state.get("sector_select") not in ids:  # area removed by admin, or first visit
+        st.session_state["sector_select"] = current if current in ids else ids[0]
+    if compact:
+        labels = {r.id: f"📍 {r['name']} · {'Free' if r.fee == 0 else rs(r.fee)}" for _, r in sectors.iterrows()}
+        choice = where.selectbox("Deliver to", ids, format_func=labels.get, key="sector_select",
+                                 label_visibility="collapsed", width=215)
+    else:
+        labels = {r.id: f"{r['name']} — {'Free' if r.fee == 0 else rs(r.fee)} · {r.eta}" for _, r in sectors.iterrows()}
+        choice = where.selectbox("📍 Deliver to", ids, format_func=labels.get, key="sector_select")
     st.session_state["sector_id"] = choice
     return sectors.set_index("id").loc[choice]
+
+
+def current_sector(sectors: pd.DataFrame) -> pd.Series | None:
+    """The area the customer picked (Delivery rates table or checkout), or None if not picked yet."""
+    sid = st.session_state.get("sector_id")
+    if sectors.empty or not sid:
+        return None
+    by_id = sectors.set_index("id")
+    return by_id.loc[sid] if sid in by_id.index else None
+
+
+def version() -> int:
+    """Catalog version for this run (set by the entry point's live watcher)."""
+    return st.session_state.get("_catalog_v") or db.catalog_version()
 
 
 def sidebar_basket(products: pd.DataFrame) -> None:
@@ -219,9 +244,17 @@ def order_message(order: dict) -> str:
         lines.append(f"• {it['name']} ({it.get('unit') or ''}) × {it['qty']} = {rs(it['line_total'])}")
     lines += [
         "",
-        f"Subtotal: {rs(order['subtotal'])}",
-        f"Delivery: {'Free' if order['delivery_fee'] == 0 else rs(order['delivery_fee'])}",
-        f"*Total (cash on delivery): {rs(order['total'])}*",
+        f"Items: {rs(order['subtotal'])}",
+    ]
+    if order.get("fee_pending"):
+        lines += [
+            "Delivery: ⚠️ area not on the delivery list. Please add the delivery charge.",
+            f"*Items total (cash on delivery): {rs(order['total'])} + delivery*",
+        ]
+    else:
+        lines += [
+            f"Delivery: {fee_text(order['delivery_fee'])}",
+            f"*Total (cash on delivery): {rs(order['total'])}*",
     ]
     if order.get("notes"):
         lines += ["", f"Notes: {order['notes']}"]

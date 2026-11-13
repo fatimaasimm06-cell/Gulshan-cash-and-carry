@@ -1,13 +1,13 @@
 import streamlit as st
 
 import db
+import layout
 import ui
 
-version = ui.live_catalog()
+version = ui.version()
 products = db.load_products(version)
-ui.sidebar_basket(products)
 
-ui.header("Track your order", "Enter the order ID from your confirmation and your phone number")
+layout.section_title("Live order status", "Track your order", "Enter the order ID from your confirmation and your phone number.")
 
 last = st.session_state.get("last_order") or {}
 with st.form("track"):
@@ -62,8 +62,13 @@ def show_status(order_id: str, phone: str) -> None:
         st.markdown(f"Deliver to: {order['address']}, {order['sector_name']} · {order['slot']}")
         for it in order["items"]:
             st.markdown(f"- {it['name']} × {it['qty']} — {ui.rs(it['line_total'])}")
-        st.markdown(f"Delivery: {'Free' if order['delivery_fee'] == 0 else ui.rs(order['delivery_fee'])}  \n"
-                    f"**Total (cash on delivery): {ui.rs(order['total'])}**")
+        if order.get("fee_pending"):
+            st.markdown(f"Items: {ui.rs(order['subtotal'])}  \n"
+                        "Delivery: **⏳ the store is adding the charge for your area**  \n"
+                        "Your total will show here automatically.")
+        else:
+            st.markdown(f"Items: {ui.rs(order['subtotal'])}  \nDelivery: {ui.fee_text(order['delivery_fee'])}  \n"
+                        f"**Total (cash on delivery): {ui.rs(order['total'])}**")
     if st.button("🔁 Order these items again"):
         _reorder(order)
         st.rerun(scope="app")
