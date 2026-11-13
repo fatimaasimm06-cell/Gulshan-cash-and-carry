@@ -123,14 +123,65 @@ def _secret(name: str, default=None):
 
 
 @st.cache_resource(show_spinner=False)
+def _describe_url(url: str) -> list[str]:
+    """Plain-English checks on DATABASE_URL for the logs. Never prints the password itself."""
+    from sqlalchemy.engine import make_url
+    notes = []
+    raw = url.strip()
+    if raw != url:
+        notes.append("DATABASE_URL has spaces or line breaks at the start or end.")
+    try:
+        u = make_url(raw)
+    except Exception as e:  # unparseable link
+        return notes + [f"DATABASE_URL is not a valid link ({type(e).__name__}). Copy it again from Supabase."]
+    pw = u.password or ""
+    notes.append(f"user = {u.username}  |  host = {u.host}  |  port = {u.port}  |  database = {u.database}")
+    notes.append(f"password length = {len(pw)} characters")
+    for bad in ("YOUR-PASSWORD", "NEW-PASSWORD", "PASSWORD-HERE", "PASSWORD"):
+        if bad.lower() in pw.lower():
+            notes.append(f"PROBLEM: the password still contains the placeholder text '{bad}'. Type your real password.")
+            break
+    if any(ch in pw for ch in "[]"):
+        notes.append("PROBLEM: the password contains [ or ]. Remove the square brackets around it.")
+    if any(ch.isspace() for ch in pw):
+        notes.append("PROBLEM: the password contains a space.")
+    if raw.count("@") > 1:
+        notes.append("PROBLEM: the link has more than one '@'. Your password probably contains '@'; "
+                     "reset it in Supabase to letters and numbers only.")
+    if not pw:
+        notes.append("PROBLEM: no password found between ':' and '@'.")
+    if u.username and "." not in u.username and "pooler.supabase.com" in (u.host or ""):
+        notes.append("PROBLEM: with the Session pooler the user must look like 'postgres.<project-code>'.")
+    return notes
+
+
+class DatabaseUnavailable(Exception):
+    """Raised (with a plain-English hint) when DATABASE_URL is set but the database refuses us."""
+
+
 def get_engine():
     url = _secret("DATABASE_URL")
     if url:
+        url = url.strip()
         if url.startswith("postgres://"):
             url = "postgresql+psycopg2://" + url[len("postgres://"):]
         elif url.startswith("postgresql://"):
             url = "postgresql+psycopg2://" + url[len("postgresql://"):]
         engine = create_engine(url, pool_pre_ping=True, pool_size=5, max_overflow=5)
+        try:
+            with engine.connect():
+                pass
+        except Exception as e:
+            reason = str(getattr(e, "orig", e)).strip().splitlines()[-1] if str(e).strip() else type(e).__name__
+            lines = ["", "=" * 70, "DATABASE CONNECTION FAILED", f"Supabase says: {reason}"]
+            lines += ["Checks on DATABASE_URL (password hidden):"] + [f"  - {n}" for n in _describe_url(url)]
+            if "password authentication failed" in reason:
+                lines.append("  -> The password in DATABASE_URL does not match the database password in "
+                             "Supabase (Project Settings > Database). Compare the length above with yours.")
+            lines.append("=" * 70)
+            print("\n".join(lines), flush=True)
+            engine.dispose()
+            raise DatabaseUnavailable(reason) from None
     else:
         os.makedirs("data", exist_ok=True)
         engine = create_engine("sqlite:///data/gulshan.db", connect_args={"check_same_thread": False})
