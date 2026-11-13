@@ -137,7 +137,7 @@ def _describe_url(url: str) -> list[str]:
     pw = u.password or ""
     notes.append(f"user = {u.username}  |  host = {u.host}  |  port = {u.port}  |  database = {u.database}")
     notes.append(f"password length = {len(pw)} characters")
-    for bad in ("YOUR-PASSWORD", "NEW-PASSWORD", "PASSWORD-HERE", "PASSWORD"):
+    for bad in ("YOUR-PASSWORD", "NEW-PASSWORD", "PASSWORD-HERE", "PASTE-HERE"):
         if bad.lower() in pw.lower():
             notes.append(f"PROBLEM: the password still contains the placeholder text '{bad}'. Type your real password.")
             break
@@ -188,6 +188,12 @@ def get_engine():
     metadata.create_all(engine)
     _migrate(engine)
     _seed_if_empty(engine)
+    with engine.connect() as conn:
+        n_all = conn.execute(select(func.count()).select_from(products)).scalar()
+        n_live = conn.execute(select(func.count()).select_from(products).where(products.c.active.is_(True))).scalar()
+        n_areas = conn.execute(select(func.count()).select_from(sectors)).scalar()
+    print(f"DATABASE OK ({engine.dialect.name}): {n_all} products ({n_live} visible in the store), "
+          f"{n_areas} delivery areas", flush=True)
     return engine
 
 
