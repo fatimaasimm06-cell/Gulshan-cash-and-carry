@@ -122,7 +122,6 @@ def _secret(name: str, default=None):
     return os.environ.get(name, default)
 
 
-@st.cache_resource(show_spinner=False)
 def _describe_url(url: str) -> list[str]:
     """Plain-English checks on DATABASE_URL for the logs. Never prints the password itself."""
     from sqlalchemy.engine import make_url
@@ -137,7 +136,7 @@ def _describe_url(url: str) -> list[str]:
     pw = u.password or ""
     notes.append(f"user = {u.username}  |  host = {u.host}  |  port = {u.port}  |  database = {u.database}")
     notes.append(f"password length = {len(pw)} characters")
-    for bad in ("YOUR-PASSWORD", "NEW-PASSWORD", "PASSWORD-HERE", "PASSWORD"):
+    for bad in ("YOUR-PASSWORD", "NEW-PASSWORD", "PASSWORD-HERE", "PASTE-HERE"):
         if bad.lower() in pw.lower():
             notes.append(f"PROBLEM: the password still contains the placeholder text '{bad}'. Type your real password.")
             break
@@ -159,6 +158,7 @@ class DatabaseUnavailable(Exception):
     """Raised (with a plain-English hint) when DATABASE_URL is set but the database refuses us."""
 
 
+@st.cache_resource(show_spinner=False)
 def get_engine():
     url = _secret("DATABASE_URL")
     if url:
@@ -167,7 +167,9 @@ def get_engine():
             url = "postgresql+psycopg2://" + url[len("postgres://"):]
         elif url.startswith("postgresql://"):
             url = "postgresql+psycopg2://" + url[len("postgresql://"):]
-        engine = create_engine(url, pool_pre_ping=True, pool_size=5, max_overflow=5)
+        # Supabase free tier allows 15 connections in total; two apps x (2 + 2) stays well under that.
+        engine = create_engine(url, pool_pre_ping=True, pool_size=2, max_overflow=2, pool_timeout=20,
+                               pool_recycle=300)
         try:
             with engine.connect():
                 pass
@@ -175,6 +177,9 @@ def get_engine():
             reason = str(getattr(e, "orig", e)).strip().splitlines()[-1] if str(e).strip() else type(e).__name__
             lines = ["", "=" * 70, "DATABASE CONNECTION FAILED", f"Supabase says: {reason}"]
             lines += ["Checks on DATABASE_URL (password hidden):"] + [f"  - {n}" for n in _describe_url(url)]
+            if "max clients reached" in reason or "EMAXCONN" in reason:
+                lines.append("  -> Too many open connections. Reboot both Streamlit apps (Manage app > Reboot app) "
+                             "to close the old ones.")
             if "password authentication failed" in reason:
                 lines.append("  -> The password in DATABASE_URL does not match the database password in "
                              "Supabase (Project Settings > Database). Compare the length above with yours.")
@@ -188,6 +193,12 @@ def get_engine():
     metadata.create_all(engine)
     _migrate(engine)
     _seed_if_empty(engine)
+    with engine.connect() as conn:
+        n_all = conn.execute(select(func.count()).select_from(products)).scalar()
+        n_live = conn.execute(select(func.count()).select_from(products).where(products.c.active.is_(True))).scalar()
+        n_areas = conn.execute(select(func.count()).select_from(sectors)).scalar()
+    print(f"DATABASE OK ({engine.dialect.name}): {n_all} products ({n_live} visible in the store), "
+          f"{n_areas} delivery areas", flush=True)
     return engine
 
 

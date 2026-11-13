@@ -133,6 +133,7 @@ SETTINGS = {
     "store_helpline": "+92-336-1142223",
     "store_email": "gulshancashandcarryg10@gmail.com",
     "store_timings": "Daily 08:00 AM till 11:59 PM (7 days a week)",
+    "store_url": "https://gulshan-cash-and-carry-tw2mvwdrgt29x3b22pas4h.streamlit.app/",
     "map_url": "https://www.google.com/maps/search/?api=1&query=Gulshan+Cash+and+Carry+G-10+Markaz+Islamabad",
     "local_eta": "20–30 mins",
     "other_eta": "45–60 mins",

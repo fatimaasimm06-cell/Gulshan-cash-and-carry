@@ -82,14 +82,18 @@ with st.sidebar:
     if st.button("Sign out", width="stretch"):
         st.session_state.pop("admin_at", None)
         st.rerun()
-    store_url = db._secret("STORE_URL")
+    store_url = db._secret("STORE_URL") or s.get("store_url", "")
     if store_url:
-        st.link_button("🛍️ Open the store", store_url, width="stretch")
+        st.link_button("🛍️ Open the store", store_url, width="stretch", type="primary")
+    else:
+        st.caption("Add the store's web address in ⚙️ Settings to get an “Open the store” button here.")
     if db.using_sqlite():
         st.warning("Using a local SQLite file. On Streamlit Cloud this is wiped on restart — "
                    "set DATABASE_URL to a Postgres database before going live.")
 
 ui.header("Store admin", "Every save goes live in the store within a few seconds")
+if store_url:
+    st.link_button("🛍️ Open the customer store in a new tab", store_url)
 t_orders, t_scan, t_all, t_import, t_settings = st.tabs(
     ["📦 Orders", "🔎 Scan / add product", "📋 All products", "⬆️ Import / export", "⚙️ Settings"])
 
@@ -456,6 +460,8 @@ with t_settings:
         c1, c2 = st.columns(2)
         store_landmark = c1.text_input("Landmark", s.get("store_landmark", ""))
         store_timings = c2.text_input("Timings", s["store_timings"])
+        store_url_in = st.text_input("Store website address (for the “Open the store” button)",
+                                     s.get("store_url", ""), placeholder="https://….streamlit.app/")
         map_url = st.text_input("Google Maps link", s.get("map_url", ""),
                                 help="Open your shop on Google Maps → Share → Copy link")
         c1, c2 = st.columns(2)
@@ -468,6 +474,7 @@ with t_settings:
                               "store_landline": store_landline.strip(), "store_email": store_email.strip(),
                               "store_address": store_address.strip(), "store_landmark": store_landmark.strip(),
                               "store_timings": store_timings.strip(), "map_url": map_url.strip(),
+                              "store_url": store_url_in.strip(),
                               "local_eta": local_eta.strip(), "other_eta": other_eta.strip(),
                               "min_order": min_order, "delivery_slots": slots})
             st.toast("Settings saved", icon="✅")
