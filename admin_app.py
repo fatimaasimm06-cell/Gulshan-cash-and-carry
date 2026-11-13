@@ -19,7 +19,12 @@ st.set_page_config(
 import db  # noqa: E402
 import ui  # noqa: E402
 
-db.get_engine()
+try:
+    db.get_engine()  # creates tables and sample data on first run
+except db.DatabaseUnavailable:
+    st.error("We can't reach the store's database right now. Please try again in a few minutes.")
+    st.caption("Store owner: open Manage app → logs and look for “DATABASE CONNECTION FAILED”.")
+    st.stop()
 ui.setup_page()
 
 # One page only, no menu. Search engines are asked not to list it.

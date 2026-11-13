@@ -18,7 +18,12 @@ import db  # noqa: E402
 import layout  # noqa: E402
 import ui  # noqa: E402
 
-db.get_engine()  # creates tables and sample data on first run
+try:
+    db.get_engine()  # creates tables and sample data on first run
+except db.DatabaseUnavailable:
+    st.error("We can't reach the store's database right now. Please try again in a few minutes.")
+    st.caption("Store owner: open Manage app → logs and look for “DATABASE CONNECTION FAILED”.")
+    st.stop()
 ui.setup_page()
 layout.apply_css()
 
