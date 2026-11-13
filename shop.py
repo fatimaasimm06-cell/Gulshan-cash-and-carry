@@ -1,5 +1,6 @@
 import streamlit as st
 
+import catalog
 import db
 import layout
 import ui
@@ -7,57 +8,6 @@ import ui
 version = ui.version()
 s = db.get_settings(version)
 products = db.load_products(version)
-sectors = db.load_sectors(version)
-
-
-def _add(sku: str, qkey: str, info: dict) -> None:
-    qty = int(st.session_state.get(qkey, 1) or 1)
-    ui.add_to_cart(sku, qty, info)
-
-
-def product_card(p, prefix: str) -> None:
-    sku = p.sku
-    in_cart = ui.cart().get(sku, 0)
-    with st.container(key=f"pc_{prefix}_{sku}"):
-        ui.product_image(p)
-        st.markdown(f'<div class="gcc-name">{p["name"]}</div>', unsafe_allow_html=True)
-        if p.urdu_name:
-            st.markdown(f'<div class="gcc-urdu">{p.urdu_name}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="gcc-unit">{p.brand} · {p.unit}</div>', unsafe_allow_html=True)
-        mrp = f'<span class="gcc-mrp">{ui.rs(p.mrp)}</span>' if p.mrp and p.mrp > p.price else ""
-        save = (f'<br><span class="gcc-save">Save {ui.rs(p.mrp - p.price)}</span>'
-                if p.mrp and p.mrp > p.price else "")
-        st.markdown(f'<span class="gcc-price">{ui.rs(p.price)}</span>{mrp}{save or "<br>&nbsp;"}',
-                    unsafe_allow_html=True)
-
-        limit = int(min(p.max_qty or 50, p.stock or 0))
-        if limit <= 0:
-            st.markdown('<span class="gcc-oos">Out of stock</span>', unsafe_allow_html=True)
-        else:
-            c1, c2 = st.columns([1, 1], vertical_alignment="bottom")
-            c1.number_input("Qty", min_value=1, max_value=limit, value=1, step=1,
-                            key=f"{prefix}_q_{sku}", label_visibility="collapsed")
-            c2.button("Add", key=f"{prefix}_add_{sku}", type="primary", width="stretch",
-                      on_click=_add, args=(sku, f"{prefix}_q_{sku}",
-                                           {"name": p["name"], "max_qty": p.max_qty, "stock": p.stock}))
-        if in_cart:
-            st.caption(f"✅ {in_cart} in basket")
-        with st.popover("Details", width="stretch"):
-            st.markdown(f"**{p['name']}**  \n{p.brand} · {p.unit}")
-            if p.description:
-                st.write(p.description)
-            st.caption(f"Category: {p.category}" + (f" · Barcode: {p.barcode}" if p.barcode else ""))
-            st.caption(f"Max {p.max_qty} per order · {int(p.stock)} in stock")
-
-
-def grid(df, prefix: str, cols: int = 4) -> None:
-    rows = [df.iloc[i:i + cols] for i in range(0, len(df), cols)]
-    for chunk in rows:
-        columns = st.columns(cols, gap="medium")
-        for col, (_, p) in zip(columns, chunk.iterrows()):
-            with col:
-                product_card(p, prefix)
-
 
 if products.empty:
     st.info("The catalog is empty. The store will add products soon.")
@@ -71,15 +21,6 @@ cats = ["All"] + sorted(c for c in products.category.unique() if c)
 if st.session_state["cat"] not in cats:
     st.session_state["cat"] = "All"
 
-no_filters = (st.session_state["cat"] == "All" and not st.session_state["deals_only"]
-              and not st.session_state["search"].strip())
-
-# ---------------------------------------------------------------- deals
-deals = products[products.is_deal & (products.stock > 0)].head(4)
-if no_filters and not deals.empty:
-    layout.section_title("Weekly Markaz savings", "Featured wholesale deals in G-10", anchor="deals")
-    grid(deals, "deal")
-    st.html('<div style="height:24px"></div>')
 
 # ---------------------------------------------------------------- catalog
 layout.section_title("Daily fresh inventory", "Browse grocery catalog",
@@ -92,7 +33,6 @@ f1, f2 = st.columns([1, 1], vertical_alignment="center")
 deals_only = f1.toggle("🔥 Deals only", key="deals_only")
 sort = f2.selectbox("Sort", ["Featured", "Price: low to high", "Price: high to low", "Biggest savings"],
                     key="sort", label_visibility="collapsed")
-layout.scroll_if_requested("catalog")
 
 df = products
 if cat != "All":
@@ -121,7 +61,7 @@ if df.empty:
 else:
     page_size = 24
     shown = st.session_state.get("show_n", page_size)
-    grid(df.head(shown), "cat")
+    catalog.grid(df.head(shown), "cat")
     if len(df) > shown:
         if st.button(f"Show more ({len(df) - shown} left)", width="stretch"):
             st.session_state["show_n"] = shown + page_size

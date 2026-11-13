@@ -57,14 +57,18 @@ All files sit together in one folder, with no sub-folders.
 
 | File | What it is |
 | --- | --- |
-| `app.py` | Starts the **customer website** (Shop, Basket, Track order) |
+| `app.py` | Starts the **customer website** and its menu: Groceries, Wholesale Deals, Delivery Rates, Track Order, Store Info, Basket |
 | `admin_app.py` | Starts the separate **admin portal** |
-| `shop.py` | The Shop page |
-| `checkout.py` | The Basket & checkout page |
-| `track.py` | The Track order page |
+| `shop.py` | **Groceries** page: banner and the full catalog with search, categories and sorting |
+| `wholesale.py` | **Wholesale Deals** page: this week's deals and the bulk/office order request |
+| `rates.py` | **Delivery Rates** page: fee, time and free-delivery limit per area, with "Deliver here" |
+| `track.py` | **Track Order** page |
+| `store.py` | **Store Info** page: address, hours, contacts, map and how ordering works |
+| `checkout.py` | **Basket** page: basket, delivery address, bill and order confirmation |
+| `catalog.py` | Product cards and grid shared by Groceries and Wholesale Deals |
 | `admin.py` | The admin portal's page (used only by `admin_app.py`) |
 | `db.py` | Saves and loads everything from the database |
-| `layout.py` | Website design: top bar, header, hero, delivery rates, store cards, footer |
+| `layout.py` | Website design for computers and phones: top bar, header, banner, delivery rates, store info, footer |
 | `ui.py` | Basket, delivery charges, pictures, WhatsApp messages, live updates |
 | `seed.py` | Sample products, delivery areas and settings, loaded on first start only |
 | `logo.png` | Store logo |

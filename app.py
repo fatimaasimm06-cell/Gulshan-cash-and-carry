@@ -35,8 +35,11 @@ sectors = db.load_sectors(version)
 shop = st.Page("shop.py", title="Groceries", icon="🛍️", default=True)
 pages = [
     shop,
-    st.Page("checkout.py", title="Basket & checkout", icon="🛒"),
-    st.Page("track.py", title="Track order", icon="🚚"),
+    st.Page("wholesale.py", title="Wholesale deals", icon="🔥", url_path="wholesale"),
+    st.Page("rates.py", title="Delivery rates", icon="🚚", url_path="delivery-rates"),
+    st.Page("track.py", title="Track order", icon="📦", url_path="track"),
+    st.Page("store.py", title="Store info", icon="📍", url_path="store-info"),
+    st.Page("checkout.py", title="Basket & checkout", icon="🛒", url_path="basket"),
 ]
 pg = st.navigation(pages, position="hidden")
 
@@ -48,9 +51,6 @@ if pg.title == shop.title:
 
 with st.container(key="gcc-page"):
     pg.run()
-    if pg.title == shop.title:
-        layout.delivery_rates(s, sectors)
-        layout.store_info(s)
 
 layout.footer(s, products, sectors)
 
