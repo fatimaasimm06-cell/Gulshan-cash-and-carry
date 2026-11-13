@@ -129,6 +129,18 @@ header[data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSideb
   padding-right:max(16px, calc((100% - 1320px) / 2)) !important; }}
 .st-key-gcc-page {{ padding-top:32px !important; padding-bottom:56px !important; gap:1rem; }}
 
+/* ---------- readable text on white, whatever the visitor's light/dark setting */
+.stApp {{ color-scheme:light; color:{INK}; }}
+.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stMarkdownContainer"] p,
+.stApp [data-testid="stMarkdownContainer"] li, .stApp [data-testid="stMarkdownContainer"] strong,
+.stApp [data-testid="stText"], .stApp [data-testid="stMetricValue"] {{ color:{INK}; }}
+.stApp [data-testid="stCaptionContainer"], .stApp [data-testid="stCaptionContainer"] p {{ color:{MUTED} !important; }}
+.stApp [data-testid="stPageLink-NavLink"] p, .stApp [data-testid="stPageLink-NavLink"] span {{ color:{NAVY}; font-weight:600; }}
+.stApp [data-testid="stAlertContentSuccess"] p {{ color:#0B4A26 !important; }}
+.stApp [data-testid="stAlertContentInfo"] p {{ color:#0B3A75 !important; }}
+.stApp [data-testid="stAlertContentWarning"] p {{ color:#5C3D00 !important; }}
+.stApp [data-testid="stAlertContentError"] p {{ color:#7A1010 !important; }}
+
 /* ---------- type */
 .stApp, .stApp *:not([data-testid="stIconMaterial"]):not(code):not(pre):not(.gcc-mono) {{
   font-family:'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif; }}
