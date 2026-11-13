@@ -1,0 +1,16 @@
+# Always use the light look, even when a visitor's phone or browser is in dark mode.
+# (The store's design is white/navy; Streamlit's dark mode would make text unreadable on it.)
+[theme]
+base = "light"
+primaryColor = "#001089"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F7FC"
+textColor = "#0F172A"
+linkColor = "#001089"
+borderColor = "#DDE1EC"
+
+[server]
+maxUploadSize = 10
+
+[browser]
+gatherUsageStats = false
